@@ -10,6 +10,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 @keyframes apulse{0%,100%{opacity:1;box-shadow:0 0 6px #10B98199}50%{opacity:.4;box-shadow:0 0 2px #10B98133}}
+@keyframes spin{to{transform:rotate(360deg)}}
 :root{
   --c1:#6C3BE8;--c1l:#8B5CF6;--c1d:#4C1D95;
   --c2:#0EA5E9;--cg:#10B981;--cgl:#34D399;
@@ -1108,7 +1109,7 @@ body.light .btn{border-color:var(--border2);}
       <div class="rooms-header">
         <div class="rooms-title" data-t="live_rooms">Live rooms</div>
         <div style="display:flex;align-items:center;gap:8px">
-          <button onclick="refreshPublicRooms()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:8px;transition:.15s" title="Refresh"><i class="ti ti-refresh"></i></button>
+          <button id="refreshBtn" onclick="refreshPublicRooms()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:8px;transition:.15s" title="Refresh"><i class="ti ti-refresh"></i></button>
           <div class="live-badge"><div class="live-dot"></div><span data-t="live">Live</span></div>
         </div>
       </div>
@@ -2287,14 +2288,107 @@ function startPublicLobbyListener(){
     if(d&&d.code)delete _pubRooms[d.code];
     renderPublicRooms();
   });
-  _pubChannel.subscribe();
-  // Prune stale rooms every 30s (rooms heartbeat every 20s)
+  // When anyone joins the channel, ask all hosts to re-announce their rooms
+  _pubChannel.on('broadcast',{event:'request-announce'},()=>{
+    announcePublicRoom();
+  });
+  _pubChannel.subscribe((status)=>{
+    if(status==='SUBSCRIBED'){
+      // Ask existing hosts to announce their rooms immediately
+      setTimeout(()=>{
+        _pubChannel.send({type:'broadcast',event:'request-announce',payload:{}});
+        // After 2s if still empty, stop loading
+        setTimeout(()=>{ _refreshing=false; renderPublicRooms(); },2000);
+      },300);
+    }
+  });
+  // Prune stale rooms every 15s
   setInterval(()=>{
     const now=Date.now();
     let changed=false;
     Object.keys(_pubRooms).forEach(k=>{if(now-_pubRooms[k].ts>45000){delete _pubRooms[k];changed=true;}});
     if(changed)renderPublicRooms();
   },15000);
+}
+
+let _refreshing=false;
+let _refreshTimer=null;
+
+function renderPublicRooms(){
+  const list=document.getElementById('pub-rooms-list');
+  if(!list)return;
+  const rooms=Object.values(_pubRooms).sort((a,b)=>b.ts-a.ts);
+  if(rooms.length===0){
+    if(_refreshing){
+      list.innerHTML=`<div class="empty-rooms">
+        <div style="width:38px;height:38px;border:3px solid var(--border2);border-top-color:var(--c1l);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>
+        <div style="color:var(--text3);font-size:13px">Looking for rooms…</div>
+      </div>`;
+    } else {
+      list.innerHTML=`<div class="empty-rooms">
+        <i class="ti ti-tournament" style="font-size:42px;color:var(--text3);display:block;margin-bottom:10px"></i>
+        <div>No public rooms right now.</div>
+        <div style="font-size:12px;margin-top:5px;color:var(--text3)">Switch to Private and host one as Public!</div>
+      </div>`;
+    }
+    return;
+  }
+  // Rooms found — stop loading state
+  _refreshing=false;
+  setRefreshBtn(false);
+  list.innerHTML=rooms.map(r=>`
+    <div class="room-card">
+      <div class="room-card-left">
+        <div class="room-card-name">${r.roomName||'Unnamed room'}</div>
+        <div class="room-card-meta">
+          <span class="room-card-badge ${r.mode==='imposter'?'rb-imp':'rb-classic'}">${MODES.find(x=>x.id===r.mode)?.icon||'⏱️'} ${MODES.find(x=>x.id===r.mode)?.name||r.mode}</span>
+          <span><i class="ti ti-users" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${r.players}/${r.max}</span>
+          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${r.running?'#EF444420':'#10B98120'};color:${r.running?'#FCA5A5':'#6EE7B7'}">${r.running?'🔴 Running':'🟢 Available'}</span>
+        </div>
+      </div>
+      <button class="room-join-btn" onclick="joinPublicRoom('${r.code}','${r.host}')">
+        ${r.running?'Join Session':'Join'}
+      </button>
+    </div>`).join('');
+}
+
+function setRefreshBtn(loading){
+  const btn=document.getElementById('refreshBtn');
+  if(!btn)return;
+  if(loading){
+    btn.innerHTML=`<i class="ti ti-x"></i>`;
+    btn.title='Cancel';
+    btn.style.color='var(--cr)';
+  } else {
+    btn.innerHTML=`<i class="ti ti-refresh"></i>`;
+    btn.title='Refresh';
+    btn.style.color='var(--text3)';
+  }
+}
+
+function refreshPublicRooms(){
+  if(_refreshing){
+    // Cancel refresh
+    _refreshing=false;
+    if(_refreshTimer){clearTimeout(_refreshTimer);_refreshTimer=null;}
+    setRefreshBtn(false);
+    renderPublicRooms();
+    return;
+  }
+  // Start refresh
+  _refreshing=true;
+  setRefreshBtn(true);
+  renderPublicRooms();
+  // Ask hosts to re-announce
+  if(_pubChannel){
+    _pubChannel.send({type:'broadcast',event:'request-announce',payload:{}});
+  }
+  // Auto-cancel after 4s
+  _refreshTimer=setTimeout(()=>{
+    _refreshing=false;
+    setRefreshBtn(false);
+    renderPublicRooms();
+  },4000);
 }
 
 function announcePublicRoom(){
@@ -2314,40 +2408,6 @@ function announcePublicRoom(){
 function closePublicRoom(){
   if(!_pubChannel||!ST.roomCode)return;
   _pubChannel.send({type:'broadcast',event:'room-close',payload:{code:ST.roomCode}});
-}
-
-function renderPublicRooms(){
-  const list=document.getElementById('pub-rooms-list');
-  if(!list)return;
-  const rooms=Object.values(_pubRooms).sort((a,b)=>b.ts-a.ts);
-  if(rooms.length===0){
-    list.innerHTML=`<div class="empty-rooms">
-      <i class="ti ti-tournament" style="font-size:42px;color:var(--text3);display:block;margin-bottom:10px"></i>
-      <div>No public rooms right now.</div>
-      <div style="font-size:12px;margin-top:5px;color:var(--text3)">Switch to Private and host one as Public!</div>
-    </div>`;
-    return;
-  }
-  list.innerHTML=rooms.map(r=>`
-    <div class="room-card">
-      <div class="room-card-left">
-        <div class="room-card-name">${r.roomName||'Unnamed room'}</div>
-        <div class="room-card-meta">
-          <span class="room-card-badge ${r.mode==='imposter'?'rb-imp':'rb-classic'}">${MODES.find(x=>x.id===r.mode)?.icon||'⏱️'} ${MODES.find(x=>x.id===r.mode)?.name||r.mode}</span>
-          <span><i class="ti ti-users" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${r.players}/${r.max}</span>
-          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${r.running?'#EF444420':'#10B98120'};color:${r.running?'#FCA5A5':'#6EE7B7'}">${r.running?'🔴 Running':'🟢 Available'}</span>
-        </div>
-      </div>
-      <button class="room-join-btn" onclick="joinPublicRoom('${r.code}','${r.host}')">
-        ${r.running?'Join Session':'Join'}
-      </button>
-    </div>`).join('');
-}
-
-function refreshPublicRooms(){
-  renderPublicRooms();
-  // Flash the refresh icon
-  showToast('Refreshed');
 }
 
 function joinPublicRoom(code,hostName){
