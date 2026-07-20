@@ -1315,9 +1315,16 @@ body.light .btn{border-color:var(--border2);}
       <button class="code-btn" onclick="copyCode()"><i class="ti ti-copy" style="font-size:14px"></i><span data-t="copy_code">Copy code</span></button>
       <button class="code-btn" onclick="copyLink()"><i class="ti ti-link" style="font-size:14px"></i><span data-t="copy_link">Copy invite link</span></button>
     </div>
-    <div class="link-box">
-      <span class="link-url" id="linkUrl"></span>
-      <button class="copy-link-btn" onclick="copyLink()">Copy</button>
+    <!-- Host-only visibility toggle -->
+    <div id="lobbyVisToggle" style="display:none;margin-top:10px;background:var(--dark2);border-radius:10px;padding:4px;display:flex;gap:4px">
+      <button id="lobby-vis-priv" onclick="setVisibility('private')"
+        style="flex:1;padding:8px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:.2s;background:var(--c1);color:#fff">
+        <i class="ti ti-lock" style="font-size:12px;margin-right:4px"></i>Private
+      </button>
+      <button id="lobby-vis-pub" onclick="setVisibility('public')"
+        style="flex:1;padding:8px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:.2s;background:none;color:var(--text2)">
+        <i class="ti ti-world" style="font-size:12px;margin-right:4px"></i>Public
+      </button>
     </div>
   </div>
   <div id="lobbyRoomNameBox" style="display:none;background:var(--dark4);border:1px solid var(--border);border-radius:12px;padding:12px 16px;text-align:center;margin-bottom:14px">
@@ -2242,10 +2249,20 @@ function setLang(l){lang=l;document.querySelectorAll('[data-t]').forEach(el=>el.
 let _roomVisibility='private';
 function setVisibility(v){
   _roomVisibility=v;
-  document.getElementById('vis-priv').style.background=v==='private'?'var(--c1)':'none';
-  document.getElementById('vis-priv').style.color=v==='private'?'#fff':'var(--text2)';
-  document.getElementById('vis-pub').style.background=v==='public'?'var(--c1)':'none';
-  document.getElementById('vis-pub').style.color=v==='public'?'#fff':'var(--text2)';
+  const vp=document.getElementById('vis-priv'),vu=document.getElementById('vis-pub');
+  if(vp){vp.style.background=v==='private'?'var(--c1)':'none';vp.style.color=v==='private'?'#fff':'var(--text2)';}
+  if(vu){vu.style.background=v==='public'?'var(--c1)':'none';vu.style.color=v==='public'?'#fff':'var(--text2)';}
+  const lp=document.getElementById('lobby-vis-priv'),lu=document.getElementById('lobby-vis-pub');
+  if(lp){lp.style.background=v==='private'?'var(--c1)':'none';lp.style.color=v==='private'?'#fff':'var(--text2)';}
+  if(lu){lu.style.background=v==='public'?'var(--c1)':'none';lu.style.color=v==='public'?'#fff':'var(--text2)';}
+  if(ST.roomCode&&ST.isHost){
+    if(v==='public'){startPublicLobbyListener();announcePublicRoom();}
+    else{closePublicRoom();}
+  }
+}
+function showLobbyVisToggle(isHost){
+  const el=document.getElementById('lobbyVisToggle');
+  if(el)el.style.display=isHost?'flex':'none';
 }
 
 // ── PUBLIC ROOMS ──
@@ -4048,9 +4065,13 @@ document.addEventListener('click',e=>{
 function showLobby(){
   show('lobby');
   showLobbyChat();
-  const link=buildInviteLink(ST.roomCode);
   document.getElementById('lobbyCode').textContent=ST.roomCode;
-  document.getElementById('linkUrl').textContent=link;
+  showLobbyVisToggle(ST.isHost);
+  // Sync lobby toggle to current visibility
+  const lp=document.getElementById('lobby-vis-priv'),lu=document.getElementById('lobby-vis-pub');
+  if(lp){lp.style.background=_roomVisibility==='private'?'var(--c1)':'none';lp.style.color=_roomVisibility==='private'?'#fff':'var(--text2)';}
+  if(lu){lu.style.background=_roomVisibility==='public'?'var(--c1)':'none';lu.style.color=_roomVisibility==='public'?'#fff':'var(--text2)';}
+
   // Show room name (separate from host/player name)
   const roomNameBox=document.getElementById('lobbyRoomNameBox');
   const roomNameEl=document.getElementById('lobbyRoomName');
