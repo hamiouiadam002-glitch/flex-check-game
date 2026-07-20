@@ -2320,10 +2320,6 @@ function renderPublicRooms(){
   const list=document.getElementById('pub-rooms-list');
   if(!list)return;
   const rooms=Object.values(_pubRooms).sort((a,b)=>b.ts-a.ts);
-  // Update active players badge
-  const totalActive=rooms.reduce((sum,r)=>sum+(r.players||0),0);
-  const countEl=document.getElementById('active-players-count');
-  if(countEl)countEl.textContent=totalActive;
   if(rooms.length===0){
     list.innerHTML=`<div class="empty-rooms">
       <i class="ti ti-tournament" style="font-size:42px;color:var(--text3);display:block;margin-bottom:10px"></i>
@@ -4245,11 +4241,24 @@ const MODES=[
    ]}
 ];
 
+// ── COMING SOON MODES ──
+const COMING_SOON_MODES=[
+  {icon:'⛓️', name:'Blind Relay',      tag:'Team • Coordination'},
+  {icon:'⛓️', name:'Mirror Match',     tag:'Reflex • Copycat'},
+  {icon:'⛓️', name:'Countdown Duel',   tag:'1v1 • Pressure'},
+  {icon:'⛓️', name:'Ghost Hold',       tag:'Mystery • Bluff'},
+  {icon:'⛓️', name:'Rhythm Lock',      tag:'Music • Timing'},
+  {icon:'⛓️', name:'Chaos Round',      tag:'Random • Wild'},
+];
+
+let _comingSoonOpen=false;
+
 // ── LOBBY LEFT MODES PANEL ──
 function renderLobbyModesPanel(activeModeId){
   const list=document.getElementById('lobbyModesList');
   if(!list)return;
-  list.innerHTML=MODES.map(m=>`
+
+  const activeModes=MODES.map(m=>`
     <div class="lobby-mode-item${activeModeId===m.id?' active-mode':''}"
          style="--lm-color:${m.color}">
       <div class="lobby-mode-icon">${m.icon}</div>
@@ -4260,6 +4269,35 @@ function renderLobbyModesPanel(activeModeId){
       ${activeModeId===m.id?`<i class="ti ti-chevron-right" style="font-size:12px;color:${m.color};margin-left:auto;flex-shrink:0"></i>`:''}
     </div>
   `).join('');
+
+  const comingSoonItems=COMING_SOON_MODES.map(m=>`
+    <div class="lobby-mode-item" style="opacity:.55;cursor:default;--lm-color:#666">
+      <div class="lobby-mode-icon" style="filter:grayscale(1)">⛓️</div>
+      <div class="lobby-mode-info">
+        <div class="lobby-mode-name" style="color:var(--text3)">${m.name}</div>
+        <div class="lobby-mode-tag">${m.tag}</div>
+      </div>
+      <span style="margin-left:auto;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;background:var(--dark4);color:var(--text3);white-space:nowrap;flex-shrink:0">SOON</span>
+    </div>
+  `).join('');
+
+  const dropdownHtml=`
+    <div onclick="toggleComingSoon()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;border-top:1px solid var(--border2);margin-top:4px;user-select:none">
+      <span style="font-size:11px;font-weight:700;color:var(--text3)">⛓️ More modes coming soon</span>
+      <i id="comingSoonChevron" class="ti ti-chevron-${_comingSoonOpen?'up':'down'}" style="font-size:12px;color:var(--text3);transition:.2s"></i>
+    </div>
+    <div id="comingSoonList" style="display:${_comingSoonOpen?'block':'none'}">${comingSoonItems}</div>
+  `;
+
+  list.innerHTML=activeModes+dropdownHtml;
+}
+
+function toggleComingSoon(){
+  _comingSoonOpen=!_comingSoonOpen;
+  const listEl=document.getElementById('comingSoonList');
+  const chevron=document.getElementById('comingSoonChevron');
+  if(listEl)listEl.style.display=_comingSoonOpen?'block':'none';
+  if(chevron){chevron.classList.toggle('ti-chevron-down',!_comingSoonOpen);chevron.classList.toggle('ti-chevron-up',_comingSoonOpen);}
 }
 
 function getModeSettings(){
