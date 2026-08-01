@@ -42,6 +42,198 @@ body.light #bgCanvas{opacity:.35}
 .nav-name-lock{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:.15s}
 .nav-name-lock:hover{background:var(--dark3);color:var(--text)}
 .nav-name-lock.locked{background:var(--c1);border-color:var(--c1);color:#fff}
+/* ══════════════════════════════════════════════════
+   🪙 GOLDEN SPOT — styles
+   ══════════════════════════════════════════════════ */
+#s-goldenspot.active{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 16px 32px;gap:10px}
+.gs-round-badge{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;align-self:flex-start}
+.gs-phase-label{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text);min-height:28px;text-align:center}
+.gs-table-wrap{position:relative;width:min(380px,96vw);height:min(380px,96vw);flex-shrink:0}
+.gs-table{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#2a2448,#0d0b1e);
+  box-shadow:0 0 0 4px #ffffff0a,0 8px 40px #00000090,inset 0 2px 0 #ffffff12;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* ── Revolver Cylinder Animation ──────────────────────────────────────── */
+/* Outer rim glow ring (cosmetic only, stays fixed) */
+.gs-table-rim{position:absolute;inset:-6px;border-radius:50%;border:6px solid #ffffff08}
+/* Cover plate — fixed, never rotates, punches N visible holes via clip trick */
+#gsCover{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:4}
+/* Inner rotating disc that sits behind the cover */
+#gsDisc{position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(ellipse at 40% 40%,#1a1830,#0a0818);
+  box-shadow:inset 0 0 40px #000000a0;
+  transform-origin:50% 50%;will-change:transform;z-index:2}
+/* Centre bolt on the disc */
+#gsDiscBolt{position:absolute;top:50%;left:50%;width:12px;height:12px;
+  border-radius:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 40% 35%,#5a5870,#25233a);
+  box-shadow:0 0 6px #00000090,inset 0 1px 0 #ffffff20;z-index:3;pointer-events:none}
+/* Hidden spots on the disc (behind cover) */
+.gs-disc-hole{position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#2e2b4a,#1a1830);
+  box-shadow:inset 0 3px 10px #000000c0,inset 0 0 4px #000000a0;
+  transform-origin:50% 50%}
+/* Cover hole windows — fixed, show through to disc below */
+.gs-cover-hole{position:absolute;border-radius:50%;z-index:5;pointer-events:none;
+  box-shadow:inset 0 2px 8px #000000a0,0 0 0 2px #ffffff08}
+/* Visible spot revealed through a cover hole after spin stops */
+.gs-cover-hole .gs-spot-reveal{position:absolute;inset:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .25s;pointer-events:auto;cursor:pointer}
+.gs-cover-hole .gs-spot-reveal.shown{opacity:1}
+.gs-cover-hole .gs-spot-reveal.golden{
+  background:radial-gradient(circle at 35% 30%,#FBBF24,#D97706);
+  box-shadow:0 0 18px #F5B94280,0 0 4px #00000060,inset 0 2px 0 #ffffff40}
+.gs-cover-hole .gs-spot-reveal.danger{
+  background:radial-gradient(circle at 35% 30%,#EC4899,#9D174D);
+  box-shadow:0 0 18px #EC489980,0 0 4px #00000060,inset 0 2px 0 #ffffff30}
+.gs-cover-hole .gs-spot-reveal.claimed{outline:4px solid #22C55E;outline-offset:2px;cursor:not-allowed}
+.gs-cover-hole .gs-spot-reveal.claimed.danger{outline-color:#EF4444}
+/* locked-out: dim the spot but NOT its stamp child (stamp overrides filter below) */
+.gs-cover-hole .gs-spot-reveal.locked-out{outline-color:#6B6B85;pointer-events:none;filter:saturate(.55) brightness(.85)}
+/* claimed by someone else — stays full green, just not clickable */
+.gs-cover-hole .gs-spot-reveal.locked-out-noclaim{pointer-events:none}
+/* When someone else claims a spot, it's both claimed+locked-out — keep green ring, full brightness stamp */
+.gs-cover-hole .gs-spot-reveal.claimed.locked-out{outline-color:#22C55E}
+.gs-cover-hole .gs-spot-reveal.claimed.locked-out .gs-spot-stamp{filter:saturate(1) brightness(1.15)}
+.gs-cover-hole .gs-spot-reveal.mine-claim{pointer-events:none}
+.gs-cover-hole .gs-spot-reveal .gs-spot-icon{font-size:clamp(18px,5vw,28px);pointer-events:none}
+/* ── Spot overlay stamps (checkmark for claimed spots, unavailable for others) ── */
+.gs-spot-stamp{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;pointer-events:none;z-index:6;
+  animation:gsStampPop .3s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes gsStampPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+/* Green overlay for the spot YOU claimed — shown only to you */
+.gs-spot-stamp.stamp-check{background:rgba(34,197,94,.32);box-shadow:inset 0 0 0 3px #22C55E;
+  font-size:clamp(20px,5.5vw,32px)}
+/* No ::after checkmark — lock emoji is injected via JS instead */
+/* Dark overlay for spots that are off-limits to the claimer (remaining unclaimed spots) */
+.gs-spot-stamp.stamp-unavail{background:rgba(0,0,0,.52);font-size:clamp(18px,5vw,28px)}
+.gs-cover-hole .gs-spot-name{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap;pointer-events:none;
+  max-width:70px;overflow:hidden;text-overflow:ellipsis}
+/* Shimmer on the cover to give it a metallic look */
+#gsCover::after{content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(ellipse at 30% 20%,#ffffff0a 0%,transparent 65%),
+             linear-gradient(145deg,#ffffff06 0%,transparent 50%,#000000a0 100%);
+  pointer-events:none}
+/* Purple glow ring around the whole cylinder */
+.gs-table::before{content:'';position:absolute;inset:-3px;border-radius:50%;
+  background:transparent;box-shadow:0 0 0 3px #7C3AED30,0 0 30px #7C3AED20;
+  pointer-events:none;z-index:10}
+/* Old spin ring — keep hidden; replaced by disc */
+.gs-spin-ring{display:none}
+/* Spots on the table */
+.gs-spot{position:absolute;width:22%;height:22%;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;transform-origin:center;user-select:none}
+.gs-spot:active{transform:scale(.94)}
+.gs-spot.golden{background:radial-gradient(circle at 35% 30%,#FBBF24,#D97706);
+  box-shadow:0 0 18px #F5B94280,0 0 4px #00000060,inset 0 2px 0 #ffffff40}
+.gs-spot.danger{background:radial-gradient(circle at 35% 30%,#EC4899,#9D174D);
+  box-shadow:0 0 18px #EC489980,0 0 4px #00000060,inset 0 2px 0 #ffffff30}
+.gs-spot.claimed{outline:4px solid #22C55E;outline-offset:2px;cursor:not-allowed}
+.gs-spot.claimed.danger{outline-color:#EF4444}
+/* A spot someone ELSE locked in — visually "blocked", not just outlined */
+.gs-spot.locked-out{outline-color:#6B6B85;pointer-events:none;filter:saturate(.55) brightness(.85)}
+.gs-spot.locked-out .gs-spot-icon{visibility:hidden}
+.gs-spot-lock-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(16px,4.2vw,24px);pointer-events:none;animation:gsLockPop .25s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes gsLockPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+/* My own claimed spot stays clickable-looking but locked out from re-picking */
+.gs-spot.mine-claim{pointer-events:none}
+.gs-spot.pulse-in{animation:gsSpotIn .35s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes gsSpotIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+.gs-spot-icon{font-size:clamp(18px,5vw,28px);pointer-events:none}
+.gs-spot-name{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap;pointer-events:none;
+  max-width:70px;overflow:hidden;text-overflow:ellipsis}
+/* Player row at the bottom */
+.gs-player-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:400px;margin-top:8px}
+.gs-pcard{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:1;transition:opacity .4s}
+.gs-pcard.out{opacity:.35}
+.gs-pcard-av{width:40px;height:40px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0;border:2px solid transparent;transition:border-color .3s}
+.gs-pcard-av.safe{border-color:#22C55E;box-shadow:0 0 8px #22C55E60}
+.gs-pcard-av.danger{border-color:#EF4444;box-shadow:0 0 8px #EF444460}
+.gs-pcard-av.out-ring{border-color:#EF4444;filter:grayscale(.8)}
+.gs-pcard-name{font-size:9px;font-weight:700;color:var(--text2);max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-pcard-badge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;letter-spacing:.5px}
+.gs-pcard-badge.alive-b{background:#22C55E22;color:#22C55E}
+.gs-pcard-badge.out-b{background:#EF444422;color:#EF4444}
+/* Countdown overlay */
+#gsCountdown{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(10,12,20,.93)}
+#gsCountdownNum{font-size:96px;font-weight:800;color:#F5B942;line-height:1}
+/* Claim status label (not interactive — claiming happens by tapping a spot) */
+#gsClaimBtn{padding:18px 36px;border-radius:16px;border:none;font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,#F5B942,#D97706);color:#1a0a00;cursor:default;font-family:var(--font);
+  letter-spacing:.5px;box-shadow:0 4px 20px #F5B94260;transition:.15s;width:100%;max-width:320px;
+  text-align:center;user-select:none}
+#gsClaimBtn.gs-spectator{background:linear-gradient(135deg,#4B5563,#1F2937);color:#9CA3AF;box-shadow:none}
+/* Once THIS viewer has locked in a spot, every other still-open spot dims out for them —
+   they can no longer act on the board, even though other players still can. */
+.gs-table-wrap.my-locked-in .gs-cover-hole .gs-spot-reveal:not(.claimed){
+  pointer-events:none;filter:saturate(.35) brightness(.55);opacity:.6}
+/* Checkmark stamp overlaid on the claim bar once this viewer's spot is confirmed */
+#gsClaimBtn{position:relative}
+#gsClaimBtn .gs-claim-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  gap:10px;border-radius:16px;background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;
+  font-size:20px;font-weight:800;letter-spacing:.5px}
+#gsClaimBtn.gs-claimed-confirmed .gs-claim-check{display:flex}
+#gsClaimBtn.gs-claimed-confirmed .gs-claim-text{visibility:hidden}
+/* Elim announcement */
+#gsElimBanner{display:none;position:fixed;inset:0;z-index:70;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(10,12,20,.85);animation:fadeUp .25s ease}
+.gs-elim-skull{font-size:64px;animation:gsPop .5s cubic-bezier(.34,1.56,.64,1)}
+.gs-elim-name{font-size:24px;font-weight:800;color:#EF4444}
+.gs-elim-sub{font-size:14px;color:var(--text2)}
+@keyframes gsPop{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+/* ── BOOM / BUSTED overlay — appears on deadly hit, auto-fades ── */
+#gsBoomOverlay{position:fixed;inset:0;z-index:75;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;pointer-events:none;
+  animation:gsBoomFade 350ms ease forwards}
+@keyframes gsBoomFade{
+  0%  {opacity:0;transform:scale(.6)}
+  30% {opacity:1;transform:scale(1.08)}
+  65% {opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.95)}
+}
+.gs-boom-emoji{font-size:80px;filter:drop-shadow(0 0 24px #EF444499)}
+.gs-boom-text{font-size:36px;font-weight:900;color:#EF4444;letter-spacing:2px;
+  text-shadow:0 0 20px #EF444488}
+/* Red flash overlay */
+@keyframes gsRedFlash{0%{opacity:.55}100%{opacity:0}}
+#gsRedFlash{position:fixed;inset:0;z-index:74;pointer-events:none;display:none;
+  background:#EF444422;animation:gsRedFlash 400ms ease forwards}
+/* Danger spot shake */
+@keyframes gsDangerShake{
+  0%,100%{transform:translate(0,0) scale(1)}
+  15%{transform:translate(-6px,-3px) scale(1.06)}
+  30%{transform:translate(5px,4px) scale(1.04)}
+  45%{transform:translate(-4px,5px) scale(1.03)}
+  60%{transform:translate(4px,-3px) scale(1.04)}
+  75%{transform:translate(-3px,2px) scale(1.02)}
+}
+.gs-danger-shake{animation:gsDangerShake 350ms cubic-bezier(.36,.07,.19,.97) both}
+
+/* Timer bar removed — round is speed-based, not countdown-based */
+/* Final screen */
+/* Personalized role banner — a different message for the winner vs. everyone else,
+   using the same visual language as the in-round elimination popup. */
+.gsf-role-banner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 16px 10px}
+.gsf-role-icon{font-size:56px;animation:gsPop .5s cubic-bezier(.34,1.56,.64,1)}
+.gsf-role-title{font-size:24px;font-weight:800}
+.gsf-role-sub{font-size:14px;color:var(--text2);font-weight:600}
+.gsf-role-win .gsf-role-title{color:#22C55E}
+.gsf-role-lose .gsf-role-title{color:#EF4444}
+#s-gs-final .gs-winner-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 16px 16px}
+#s-gs-final .gs-winner-crown{font-size:52px}
+#s-gs-final .gs-winner-ring{width:100px;height:100px;border-radius:50%;overflow:hidden;border:4px solid #F5B942;box-shadow:0 0 24px #F5B94260}
+#s-gs-final .gs-winner-name{font-size:26px;font-weight:800}
+#s-gs-final .gs-winner-sub{font-size:13px;color:#F5B942;font-weight:700;letter-spacing:1px}
+#s-gs-final .gs-elim-list{width:100%;max-width:400px;display:flex;flex-direction:column;gap:6px;padding:0 16px}
+#s-gs-final .gs-elim-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--dark3);border-radius:10px;animation:fadeUp .3s ease both}
+#s-gs-final .gs-elim-rank{font-size:13px;font-weight:800;color:var(--text3);width:20px;text-align:center}
+#s-gs-final .gs-elim-av{width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0}
+#s-gs-final .gs-elim-info{flex:1}
+#s-gs-final .gs-elim-name{font-size:13px;font-weight:700}
+#s-gs-final .gs-elim-skull{font-size:18px}
 /* ── RESPONSIVE: Desktop bigger, Mobile compact ── */
 @media(min-width:600px){
   #app{max-width:640px;font-size:16px;}
@@ -1297,6 +1489,19 @@ body.light .btn{border-color:var(--border2);}
     </div>
   </div>
 
+  <!-- Reset Room confirmation modal (host only) -->
+  <div id="resetRoomModal" style="display:none;position:fixed;inset:0;background:#00000085;z-index:220;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <div style="background:var(--dark2);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:320px;width:90%;text-align:center;box-shadow:0 8px 40px #00000080">
+      <div style="font-size:32px;margin-bottom:12px">🔄</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:8px">Reset Room?</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.65">This will restore all room settings to their defaults and fix any host conflicts. Player scores will be reset to 0.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('resetRoomModal').style.display='none'" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border2);background:var(--dark3);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">Cancel</button>
+        <button onclick="confirmResetRoom()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#6B7280;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s" onmouseover="this.style.background='#9CA3AF'" onmouseout="this.style.background='#6B7280'">Reset</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── LOBBY TWO-COLUMN LAYOUT ── -->
   <div class="lobby-layout">
     <!-- LEFT: All Modes panel (guest read-only, host read-only too) -->
@@ -1308,7 +1513,18 @@ body.light .btn{border-color:var(--border2);}
     <!-- RIGHT: main lobby content -->
     <div class="lobby-right-panel">
 
-  <div class="room-code-box">
+  <div class="room-code-box" style="position:relative">
+    <!-- Reset Room button — host only, top-left of the room code box -->
+    <button id="resetRoomBtn" onclick="document.getElementById('resetRoomModal').style.display='flex'"
+      style="display:none;position:absolute;top:10px;left:10px;
+             padding:5px 10px;border-radius:8px;border:1px solid #6B728050;
+             background:#6B728020;color:#9CA3AF;font-size:11px;font-weight:700;
+             cursor:pointer;font-family:var(--font);transition:.2s;
+             display:flex;align-items:center;gap:5px;letter-spacing:.2px"
+      onmouseover="this.style.background='#6B728040';this.style.color='#D1D5DB'"
+      onmouseout="this.style.background='#6B728020';this.style.color='#9CA3AF'">
+      <i class="ti ti-refresh" style="font-size:12px"></i>Reset Room
+    </button>
     <div class="code-label" data-t="room_code">Room code</div>
     <div class="code-val" id="lobbyCode">????</div>
     <div class="code-actions">
@@ -1336,38 +1552,6 @@ body.light .btn{border-color:var(--border2);}
     <div id="playerList"></div>
   </div>
 
-  <!-- ── LOBBY CHAT ── -->
-  <div id="lobbyChat" style="position:fixed;bottom:16px;left:16px;width:300px;z-index:50;display:none;flex-direction:column;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px #0008;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08)">
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,#6C3BE8cc,#0EA5E9cc)">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:chatPulse 2s infinite"></div>
-        <span style="font-size:12px;font-weight:700;color:#fff;letter-spacing:.8px">ROOM CHAT</span>
-      </div>
-      <button onclick="toggleChat()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
-    </div>
-    <!-- Messages -->
-    <div id="chatMessages" style="height:200px;overflow-y:auto;padding:12px 10px 8px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;background:rgba(10,10,30,0.85)"></div>
-    <!-- Input bar -->
-    <div style="display:flex;align-items:center;gap:0;background:rgba(10,10,30,0.95);border-top:1px solid rgba(255,255,255,0.07);padding:8px 10px;gap:8px">
-      <input id="chatInput" placeholder="Say something…" maxlength="120" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:8px 14px;font-size:13px;color:#fff;font-family:var(--font);outline:none;transition:.2s" onfocus="this.style.borderColor='#6C3BE8'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-      <button onclick="sendChat()" style="background:linear-gradient(135deg,#6C3BE8,#0EA5E9);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px #6C3BE866;transition:.15s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">↑</button>
-    </div>
-  </div>
-
-  <!-- Chat tab — always visible at bottom left when in lobby -->
-  <button id="chatBubble" onclick="toggleChat()" style="position:fixed;bottom:16px;left:16px;z-index:51;display:none;align-items:center;gap:8px;padding:10px 18px 10px 14px;border-radius:24px;background:linear-gradient(135deg,#6C3BE8,#0EA5E9);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px #6C3BE888;font-family:var(--font);transition:.2s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px #6C3BE8aa'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px #6C3BE888'">
-    <i class="ti ti-message-circle" style="font-size:18px"></i>
-    <span id="chatBubbleLabel">Room Chat</span>
-    <div id="chatUnreadBadge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:flex;align-items:center;justify-content:center;margin-left:2px"></div>
-  </button>
-
-  <style>
-    @keyframes chatPulse{0%,100%{opacity:1}50%{opacity:.4}}
-    #chatMessages::-webkit-scrollbar{width:3px}
-    #chatMessages::-webkit-scrollbar-track{background:transparent}
-    #chatMessages::-webkit-scrollbar-thumb{background:#6C3BE860;border-radius:3px}
-  </style>
   <div id="hostSettings" style="display:none">
     <!-- Mode Selector — Gartic style -->
     <div style="margin-bottom:14px">
@@ -1681,6 +1865,91 @@ body.light .btn{border-color:var(--border2);}
   <button class="btn" onclick="exitToMenu()" style="background:#EF4444;color:#fff;border:none;margin-top:10px;font-weight:700;letter-spacing:1px">
     <i class="ti ti-door-exit" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>EXIT
   </button>
+</div>
+
+<!-- GOLDEN SPOT GAME SCREEN -->
+<div id="s-goldenspot" class="screen">
+  <!-- Countdown overlay -->
+  <div id="gsCountdown" style="display:none;position:fixed;inset:0;z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(10,12,20,.93)">
+    <div style="font-size:15px;color:var(--text2);font-weight:700;letter-spacing:2px">GET READY</div>
+    <div id="gsCountdownNum" style="font-size:96px;font-weight:800;color:#F5B942;line-height:1">5</div>
+    <div style="font-size:13px;color:var(--text3)">🪙 Claim a golden spot — fast!</div>
+  </div>
+  <!-- Elimination banner overlay -->
+  <div id="gsElimBanner" style="display:none;position:fixed;inset:0;z-index:70;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(10,12,20,.85)">
+    <div class="gs-elim-skull">💀</div>
+    <div class="gs-elim-name" id="gsElimName">Player</div>
+    <div class="gs-elim-sub" id="gsElimSub">missed a golden spot!</div>
+  </div>
+  <!-- BOOM overlay — only shown to the player who hits the deadly button -->
+  <div id="gsBoomOverlay" style="display:none">
+    <div class="gs-boom-emoji">💥</div>
+    <div class="gs-boom-text">BUSTED!</div>
+  </div>
+  <!-- Red screen flash -->
+  <div id="gsRedFlash" style="display:none"></div>
+  <div class="gs-round-badge" id="gsRoundBadge">ROUND 1</div>
+  <div class="gs-phase-label" id="gsPhaseLabel">⏳ Spinning…</div>
+  <!-- Timer bar removed — round has no fixed countdown; speed is what matters -->
+  <div class="gs-table-wrap" id="gsTableWrap">
+    <div class="gs-table" id="gsTable">
+      <!-- Revolver inner disc (rotates) -->
+      <div id="gsDisc">
+        <!-- Hidden disc holes injected by JS during spin -->
+      </div>
+      <div id="gsDiscBolt"></div>
+      <!-- Fixed cover plate with N visible holes (injected by JS) -->
+      <div id="gsCover"></div>
+      <!-- Legacy spin ring kept for compat (hidden via CSS) -->
+      <div class="gs-spin-ring" id="gsSpinRing"></div>
+    </div>
+  </div>
+  <!-- Player status row -->
+  <div class="gs-player-row" id="gsPlayerRow"></div>
+  <!-- Claim status label — hidden during spin, revealed after wheel stops -->
+  <div id="gsClaimBtn" style="display:none"><span class="gs-claim-text">🪙 Claim your spot</span><span class="gs-claim-check">✅ Claimed!</span></div>
+  <!-- Controls — hidden during spin, shown after wheel stops -->
+  <div id="gsControls" style="display:none;flex-direction:column;align-items:center;gap:8px;margin-top:4px">
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button id="gsReturnLobbyBtn" class="rtl-host-btn" onclick="backToLobbyFromFinal()" style="display:none;background:none;border:1px solid var(--border2);color:var(--text2);padding:7px 18px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:.15s">
+        <i class="ti ti-arrow-back-up" style="font-size:12px;margin-right:4px;vertical-align:-1px"></i>Return to lobby
+      </button>
+      <button onclick="promptMidLeave()" style="background:none;border:1px solid #EF444460;color:#EF4444;padding:7px 18px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:.15s">
+        <i class="ti ti-door-exit" style="font-size:12px;margin-right:4px;vertical-align:-1px"></i>Leave game
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- GOLDEN SPOT FINAL SCREEN -->
+<div id="s-gs-final" class="screen">
+  <div class="gs-winner-wrap" id="gsFinalContent"></div>
+  <div class="gs-elim-list" id="gsFinalElimList"></div>
+  <div style="padding:0 16px;margin-top:8px">
+    <div id="gsFinalVoteArea" style="margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:.5px">⏱ AUTO</span>
+        <span id="gsFinalVoteStatus" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+      <div style="height:6px;border-radius:3px;background:rgba(239,68,68,0.15);overflow:hidden;margin-bottom:10px">
+        <div id="gsFinalAutoFill" style="height:100%;width:100%;background:#ef4444;border-radius:3px;transition:width 1s linear"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#4ade80;letter-spacing:.5px">👍 VOTES</span>
+        <span id="gsFinalVoteCount" style="font-size:11px;color:var(--text3)">0 voted</span>
+      </div>
+      <div style="height:6px;border-radius:3px;background:rgba(74,222,128,0.15);overflow:hidden;margin-bottom:10px">
+        <div id="gsFinalVoteFill" style="height:100%;width:0%;background:#4ade80;border-radius:3px;transition:width .4s ease"></div>
+      </div>
+      <button id="gsFinalVoteBtn" class="btn btn-purple" onclick="castVotePlayAgain('gs')" style="margin-top:2px">👍 Vote Play Again</button>
+    </div>
+    <button id="gsFinalBackToLobby" class="btn btn-outline" onclick="backToLobbyFromFinal()" style="margin-top:10px;display:none">
+      <i class="ti ti-arrow-back-up" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>Back to lobby
+    </button>
+    <button class="btn" onclick="exitToMenu()" style="background:#EF4444;color:#fff;border:none;margin-top:10px;font-weight:700;letter-spacing:1px">
+      <i class="ti ti-door-exit" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>EXIT
+    </button>
+  </div>
 </div>
 
 <!-- LOADING (shown for 1s before final results) -->
@@ -2111,7 +2380,18 @@ function updateNavBtns(){
   
   
 }
-function _showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('s-'+id);if(el)el.classList.add('active');}
+function _showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('s-'+id);
+  if(el)el.classList.add('active');
+  // Show chat bubble on every in-room screen; hide on non-room screens
+  const noChat=['home','invite','setup','solo'];
+  if(noChat.includes(id)){
+    hideLobbyChat();
+  } else {
+    showLobbyChat();
+  }
+}
 function show(id){_showScreen(id);pushScreen(id);}
 function backToHome(){destroyPeer();show('home');}
 
@@ -2165,9 +2445,84 @@ function netSend(msg){
     .catch(e=>console.warn('Send error:',e));
 }
 
+// ══════════════════════════════════════════════════════════════
+// 💓 HEARTBEAT — tab-close / silent-disconnect detection
+//
+// Every guest sends a 'ping' every PING_INTERVAL ms.
+// The host tracks the last-seen timestamps for every peer.
+// If a peer goes silent for PING_TIMEOUT ms the host treats
+// them identically to a voluntary 'leave' — removes them from
+// the roster and broadcasts the updated player list so the
+// lobby (and any live game screen) reflects reality instantly.
+// ══════════════════════════════════════════════════════════════
+const PING_INTERVAL = 4000;  // guests ping every 4 s
+const PING_TIMEOUT  = 12000; // host drops a peer after 12 s silence
+
+let _pingTimer     = null;  // guest-side interval
+let _watchdogTimer = null;  // host-side watchdog interval
+let _peerLastSeen  = {};    // host-side: { peerId → timestamp }
+
+function startHeartbeat(){
+  stopHeartbeat();
+  _pingTimer=setInterval(()=>{
+    if(!ST.roomCode||!ST.myId)return;
+    netSend({type:'ping',id:ST.myId,_from:ST.myId,_to:ST.hostPeerId});
+  },PING_INTERVAL);
+}
+
+function startWatchdog(){
+  stopWatchdog();
+  _peerLastSeen={};
+  // Seed all current guests with now so they start with a grace period
+  ST.players.forEach(p=>{ if(p.id!==ST.myId)_peerLastSeen[p.id]=Date.now(); });
+  _watchdogTimer=setInterval(()=>{
+    if(!ST.isHost)return stopWatchdog();
+    const now=Date.now();
+    Object.keys(_peerLastSeen).forEach(id=>{
+      if(now-_peerLastSeen[id]<PING_TIMEOUT)return;
+      delete _peerLastSeen[id];
+      const ghost=ST.players.find(p=>p.id===id);
+      if(!ghost)return;
+      const ghostName=ghost.name||'A player';
+      console.log('[Watchdog] evicting silent peer',id,ghostName);
+      if(ST.mode==='imposter'&&hrData&&(hrData.impIds||[]).includes(id)){
+        broadcast({type:'player_left',name:ghostName});
+        showToast(ghostName+' (an Imposter) disconnected — Matchers win!');
+        setTimeout(()=>{broadcast({type:'nextRound',final:true,scores:ST.scores});showLoadingThenFinal(ST.scores);},2500);
+        return;
+      }
+      chainPlayerDeparted(id);ttPlayerDeparted(id);gsPlayerDeparted(id);
+      ST.players=ST.players.filter(p=>p.id!==id);
+      if(ST.roundResults)delete ST.roundResults[id];
+      if(ST.activeHolders)delete ST.activeHolders[id];
+      _voteYes.delete(id);updateVoteUI();checkVotePassed();
+      const activeId=document.querySelector('.screen.active')?.id||'';
+      if(['s-final','s-tt-final','s-imp-final'].includes(activeId)&&ST.players.length<=1){
+        clearFinalVote();showToast('Everyone left — returning to lobby');
+        setTimeout(()=>{_wipeGameState();showLobby();},1200);
+      }
+      broadcast({type:'roster',players:ST.players,scores:ST.scores,maxPlayers:ST.maxPlayers,mode:ST.mode,roomName:ST.roomName,settings:getModeSettings()});
+      broadcast({type:'player_left',name:ghostName});
+      showLeaveNotif(ghostName+' disconnected');
+      renderLobby();
+      if(ST.mode!=='chain'&&ST.mode!=='taptrap'&&ST.currentRound>0)checkAllResults();
+    });
+  },PING_INTERVAL);
+}
+
+function stopHeartbeat(){
+  if(_pingTimer){clearInterval(_pingTimer);_pingTimer=null;}
+}
+function stopWatchdog(){
+  if(_watchdogTimer){clearInterval(_watchdogTimer);_watchdogTimer=null;}
+  _peerLastSeen={};
+}
+
 function destroyPeer(){
-  hideLobbyChat();
+  destroyChat();
   stopBeeping();
+  stopHeartbeat();
+  stopWatchdog();
   // Stop public room heartbeat and announce closure
   if(window._pubHeartbeat){clearInterval(window._pubHeartbeat);window._pubHeartbeat=null;}
   if(ST.isHost&&ST.roomCode&&_roomVisibility==='public')closePublicRoom();
@@ -2906,7 +3261,7 @@ function startSolo(){
 }
 function renderSoloModeGrid(){
   const grid=document.getElementById('soloModeGrid');if(!grid)return;
-  const soloModes=MODES.filter(m=>m.id!=='imposter'&&m.id!=='chain');
+  const soloModes=SELECTABLE_MODES.filter(m=>m.id!=='imposter'&&m.id!=='chain');
   grid.innerHTML=soloModes.map(m=>`<button class="mode-card-btn${_soloMode===m.id?' selected':''}" onclick="setSoloMode('${m.id}')" style="border-color:${_soloMode===m.id?m.color:''}">${m.new?'<span class="mode-card-new">NEW</span>':''}<span class="mode-card-icon">${m.icon}</span><span class="mode-card-name">${m.name}</span></button>`).join('');
   setSoloMode(_soloMode);
 }
@@ -3189,6 +3544,7 @@ function restartSolo(){SOLO.currentRound=0;SOLO.wins=0;SOLO.losses=0;SOLO.totalS
 let ST={
   mode:'',myName:'',myAvatar:null,roomCode:'',roomName:'',isHost:false,isSolo:false,tapCount:3,impVoteChance:1,
   players:[],myId:'',peer:null,conns:{},
+  hostPeerId:'', // ← always the current host's actual PeerJS ID (survives host transfer)
   targetTime:3.5,rounds:5,currentRound:0,maxPlayers:6,
   myTime:0,holdStart:null,hasHeld:false,
   roundResults:{},scores:{},imposterTarget:null,isImposter:false,
@@ -3234,6 +3590,8 @@ function hostPrivate(){
   destroyPeer();
   ST.myName=nm;ST.roomCode=code;ST.roomName=roomNm;ST.isHost=true;ST.isSolo=false;ST.mode='';
   ST.myId='cp-host-'+code;
+  ST.hostPeerId='cp-host-'+code;
+  ST._originalHostId=ST.myId; // remember the room creator — Reset Room always returns host to them
   ST.players=[{id:ST.myId,name:nm,color:0,avatar:ST.myAvatar||null}];ST.scores[ST.myId]=0;
   initPeer(ST.myId,true);
 }
@@ -3296,6 +3654,7 @@ function initPeer(id,isHost){
 
 function connectHost(){
   const hid='cp-host-'+ST.roomCode;
+  ST.hostPeerId=hid; // track the current host's peer ID (updated on host transfer)
   let joined=false;
   const isRejoin=!!_rejoinPending;
   _rejoinPending=false;
@@ -3359,10 +3718,34 @@ function handleData(d,from){
       return;
     }
     // No game running — normal fresh join into the pre-game lobby.
+    // Evict any ghost entry for the same human identity (same playerUUID or same peer ID).
+    // This happens when a player refreshes their tab — they get a new random peer ID
+    // but their playerUUID (stored in localStorage) stays the same. Without this,
+    // the old ghost entry and the new entry both sit in the roster at once.
+    const incomingUUID = d.playerUUID || null;
+    ST.players = ST.players.filter(p =>
+      p.id !== d.id &&
+      !(incomingUUID && p.playerUUID && p.playerUUID === incomingUUID)
+    );
+    // Also clean up stale scores for the evicted ghost peer ID (if any)
+    // — we'll re-set ST.scores[d.id] = 0 right below, which covers the new entry.
     if(ST.players.length>=ST.maxPlayers){send(from,{type:'full'});return;}
-    ST.players=ST.players.filter(p=>p.id!==d.id);
     const ci=ST.players.length%15;
     ST.players.push({id:d.id,name:d.name,color:ci,avatar:d.avatar||null,playerUUID:d.playerUUID||null});ST.scores[d.id]=0;
+    // Seed the watchdog with this new peer so it starts with a full grace period.
+    // Also purge any stale old-peer-ID entries for this same UUID so the watchdog
+    // doesn't immediately evict their old ghost slot.
+    if(_peerLastSeen){
+      if(incomingUUID){
+        Object.keys(_peerLastSeen).forEach(oldId=>{
+          // find if oldId belongs to the same human
+          // (it won't be in ST.players anymore since we filtered it above,
+          //  so just remove any ID that isn't a current player)
+          if(!ST.players.find(p=>p.id===oldId))delete _peerLastSeen[oldId];
+        });
+      }
+      _peerLastSeen[d.id]=Date.now();
+    }
     broadcast({type:'roster',players:ST.players,scores:ST.scores,maxPlayers:ST.maxPlayers,mode:ST.mode,roomName:ST.roomName,settings:getModeSettings()});renderLobby();
   }
   if(d.type==='leave'){
@@ -3374,7 +3757,7 @@ function handleData(d,from){
       setTimeout(()=>{broadcast({type:'nextRound',final:true,scores:ST.scores});showLoadingThenFinal(ST.scores);},2500);
       return;
     }
-    if(ST.isHost){chainPlayerDeparted(d.id);ttPlayerDeparted(d.id);}
+    if(ST.isHost){chainPlayerDeparted(d.id);ttPlayerDeparted(d.id);gsPlayerDeparted(d.id);}
     ST.players=ST.players.filter(p=>p.id!==d.id);
     if(ST.roundResults)delete ST.roundResults[d.id];
     if(ST.activeHolders)delete ST.activeHolders[d.id];
@@ -3402,6 +3785,10 @@ function handleData(d,from){
     if(ST.isHost&&ST.mode!=='chain'&&ST.mode!=='taptrap'&&ST.currentRound>0)checkAllResults();
   }
   if(d.type==='player_left'){showLeaveNotif((d.name||'A player')+' left the room');}
+  // Heartbeat: host records last-seen for the pinging guest
+  if(d.type==='ping'&&ST.isHost&&d.id){
+    _peerLastSeen[d.id]=Date.now();
+  }
   // "Return to lobby" mid-game is now, for every mode, a permanent departure —
   // no mode lets someone sit out and rejoin next round. This is handled
   // identically to a full 'leave', just under a different message type so the
@@ -3410,7 +3797,7 @@ function handleData(d,from){
     if(!ST.isHost)return;
     const sitterName=ST.players.find(p=>p.id===d.id)?.name||d.name||'Someone';
     const wasImposter=ST.mode==='imposter'&&hrData&&(hrData.impIds||[]).includes(d.id);
-    chainPlayerDeparted(d.id);ttPlayerDeparted(d.id);
+    chainPlayerDeparted(d.id);ttPlayerDeparted(d.id);gsPlayerDeparted(d.id);
     ST.players=ST.players.filter(p=>p.id!==d.id);
     if(ST.roundResults)delete ST.roundResults[d.id];
     if(ST.activeHolders)delete ST.activeHolders[d.id];
@@ -3472,6 +3859,8 @@ function handleData(d,from){
     }
     ST.players=remaining;
     const newHostId=remaining[0].id;
+    // ── KEY FIX: update hostPeerId for ALL clients so sends go to the new host ──
+    ST.hostPeerId=newHostId;
     ST.hostCount=(window._globalHostCount||0)+1;
     window._globalHostCount=ST.hostCount;
     const tag='host('+ST.hostCount+')';
@@ -3576,6 +3965,15 @@ function handleData(d,from){
       _showScreen('home');switchTab('pub');
     },1500);return;
   }
+  if(d.type==='kicked_reset'){
+    // Host reset the room — silently rejoin without going home.
+    // Just send a fresh 'join' to the host after a brief stagger so all guests
+    // don't slam at once. The host's roster wipe + normal join handler re-admits us.
+    _rejoinPending=false; // ensure we send 'join', not 'join_request'
+    const delay=Math.random()*400;
+    setTimeout(()=>{ connectHost(); }, delay);
+    return;
+  }
   if(d.type==='kicked'){
     // Remember the room code so if they click Join again, we route through host approval
     _kickedFromCode=ST.roomCode;
@@ -3618,13 +4016,19 @@ function handleData(d,from){
     ST.players=d.players;ST.scores=d.scores;ST.maxPlayers=d.maxPlayers||6;
     if(d.roomName)ST.roomName=d.roomName;
     if(d.mode)ST.mode=d.mode;
+    if(d.originalHostId)ST._originalHostId=d.originalHostId; // carry original owner identity forward
     // The public/private toggle lives in a local variable, not room state —
     // sync it explicitly so a newly-promoted host keeps announcing the room
     // (with the correct, live player count) if it was public, and doesn't
     // start announcing it if it was private.
     _roomVisibility=d.roomVisibility||'private';
     ST.isHost=(d.newHostId===ST.myId);
+    // ── KEY FIX: update hostPeerId so all future sends reach the new host ──
+    ST.hostPeerId=d.newHostId;
     if(ST.isHost&&_roomVisibility==='public')startPublicLobbyListener();
+    // Swap presence roles: new host runs watchdog, demoted player starts pinging
+    if(ST.isHost){stopHeartbeat();startWatchdog();}
+    else{stopWatchdog();startHeartbeat();}
     showLobby();
     if(ST.isHost){setModeUI(ST.mode);document.getElementById('promotedModal').style.display='flex';}
     return;
@@ -3644,6 +4048,48 @@ function handleData(d,from){
     _wipeGameState();
     showLeaveNotif('Host returned everyone to the lobby');
     showLobby();
+  }
+  // Host just reset the room — if we're not in the roster anymore (watchdog
+  // evicted us during a lag spike) send a fresh join so the host re-admits us.
+  if(d.type==='room_reset'){
+    if(!ST.isHost&&ST.myId&&ST.roomCode){
+      const stillInRoster=ST.players.find(p=>p.id===ST.myId);
+      if(!stillInRoster){
+        // Small random delay (0–600 ms) so all guests don't slam the host at once
+        setTimeout(()=>{
+          netSend({type:'join',name:ST.myName,id:ST.myId,
+            avatar:ST.myAvatar||null,
+            playerUUID:ST.playerUUID||getPlayerUUID(),
+            _from:ST.myId,_to:ST.hostPeerId});
+        }, Math.random()*600);
+      }
+    }
+    return;
+  }
+  if(d.type==='room_reset_kick'){
+    // The host reset the room AND host is being returned to the original owner.
+    // Everyone silently reconnects. The new host (original owner) will be promoted
+    // via a host_transfer message they receive separately — here we just re-join.
+    ST.players=d.players||[];ST.scores=d.scores||{};ST.maxPlayers=d.maxPlayers||6;
+    if(d.roomName)ST.roomName=d.roomName;
+    const amNewHost=(d.newHostId===ST.myId);
+    if(amNewHost){
+      // I'm the original owner being promoted back
+      ST.isHost=true;
+      ST.hostPeerId=ST.myId;
+      if(ST._originalHostId)ST.myId=ST._originalHostId; // restore original peer ID if needed
+      stopHeartbeat();startWatchdog();
+      _peerLastSeen={};
+      showLobby();
+      showToast('Room reset — you are the host again!');
+    } else {
+      // Regular guest or the demoted host — just rejoin
+      ST.isHost=false;
+      ST.hostPeerId=d.newHostId;
+      _rejoinPending=false;
+      setTimeout(()=>{ connectHost(); }, Math.random()*400);
+    }
+    return;
   }
   if(d.type==='roster'){
     ST.players=d.players;ST.scores=d.scores;ST.maxPlayers=d.maxPlayers||6;
@@ -3689,9 +4135,24 @@ function handleData(d,from){
       _cvAllPlayers=[];
       ST._cvCipher=d.cvCipher;ST._cvCode=d.cvCode;_cvTimeLimit=d.cvTimeLimit||20;ST._cvFinalDuel=d.cvFinalDuel||false;
     }
+    if(d.mode==='goldenspot'){
+      ST._gsSpinTime=d.gsSpinTime||3;ST._gsClaimTime=d.gsClaimTime||4;
+      ST._gsNumTraps=d.gsNumTraps||2;ST._gsTotalHoles=d.gsTotalHoles||6;
+      ST._gsRoundsScoring=!!(d.gsRoundsScoring);
+      _gsEliminated=new Set();_gsAlive=null;_gsDone=false;
+    }
     routeToGameScreen();
   }
   // Tap Trap: host deals a fresh turn to the whole table (target + decoys + live hearts)
+  // ── GOLDEN SPOT messages ──────────────────────────────────────────────────
+  if(d.type==='gs_round'){applyGsRound(d);}
+  if(d.type==='gs_claim'&&ST.isHost){gsHostReceiveClaim(d,from);}
+  if(d.type==='gs_spot_locked'){applyGsSpotLocked(d);}
+  if(d.type==='gs_danger_hit'){applyGsDangerHit(d);}
+  if(d.type==='gs_claim_rejected'){applyGsClaimRejected(d);}
+  if(d.type==='gs_elim'){applyGsElim(d);}
+  if(d.type==='gs_end'){applyGsEnd(d);}
+  // ─────────────────────────────────────────────────────────────────────────
   if(d.type==='tt_turn'){
     applyTapTrapTurn(d.playerId,d.target,d.options,d.hearts,d.timeLimit);
   }
@@ -3835,6 +4296,8 @@ function handleData(d,from){
     recordRoundResult(d.results,d.impTarget,d.impId);
     // Cipher Vault guests: skip renderResults entirely — cv_elim_roulette message handles everything
     if(ST.mode==='ciphervault') return;
+    // Golden Spot manages its own round/elim flow via gs_round/gs_elim/gs_end broadcasts
+    if(ST.mode==='goldenspot') return;
     // For tapgrid/chain: skip round results on non-final rounds
     const skipResults=(ST.mode==='tapgrid'||ST.mode==='chain'||ST.mode==='orderpack')&&ST.currentRound<ST.rounds;
     if(!skipResults)renderResults(d.impTarget,d.impId);
@@ -3944,10 +4407,18 @@ let _chatOpen=false;
 let _chatUnread=0;
 
 function showLobbyChat(){
+  // Show the chat bubble whenever the player is in a room (lobby OR in-game)
   document.getElementById('chatBubble').style.display='flex';
   if(_chatOpen)document.getElementById('lobbyChat').style.display='flex';
 }
 function hideLobbyChat(){
+  // Soft hide — just remove the bubble from view, keep messages intact
+  document.getElementById('chatBubble').style.display='none';
+  document.getElementById('lobbyChat').style.display='none';
+  if(_chatOpen){ _chatOpen=false; }
+}
+function destroyChat(){
+  // Full reset — only called on disconnect (destroyPeer)
   document.getElementById('chatBubble').style.display='none';
   document.getElementById('lobbyChat').style.display='none';
   document.getElementById('chatMessages').innerHTML='';
@@ -3967,7 +4438,11 @@ function toggleChat(){
 function updateChatBubble(){
   const label=document.getElementById('chatBubbleLabel');
   const badge=document.getElementById('chatUnreadBadge');
-  if(label)label.textContent='Room Chat';
+  if(label){
+    const activeId=document.querySelector('.screen.active')?.id||'';
+    const inGame=activeId&&activeId!=='s-lobby'&&activeId!=='s-home'&&activeId!=='s-invite'&&activeId!=='s-setup'&&activeId!=='s-solo';
+    label.textContent=inGame?'Chat':'Room Chat';
+  }
   if(badge){
     if(_chatUnread>0){badge.style.display='flex';badge.textContent=_chatUnread;}
     else{badge.style.display='none';}
@@ -4094,7 +4569,17 @@ function showLobby(){
   document.getElementById('navBack')?.style&&(document.getElementById('navBack').style.display='none');
   document.getElementById('leaveRoomBtn').style.display=ST.isHost?'none':'block';
   document.getElementById('deleteRoomBtn').style.display=ST.isHost?'block':'none';
+  const resetBtn=document.getElementById('resetRoomBtn');
+  if(resetBtn)resetBtn.style.display=ST.isHost?'flex':'none';
   renderLobby();
+  // Start presence detection: host runs the watchdog, guests ping
+  if(ST.isHost){
+    startWatchdog();
+    stopHeartbeat(); // host never pings itself
+  } else {
+    stopWatchdog();
+    startHeartbeat();
+  }
   if(ST.isHost&&_roomVisibility==='public'){
     startPublicLobbyListener();
     announcePublicRoom();
@@ -4107,6 +4592,81 @@ function showLobby(){
 }
 function copyCode(){navigator.clipboard&&navigator.clipboard.writeText(ST.roomCode);showToast('Room code copied!');}
 function copyLink(){const l=buildInviteLink(ST.roomCode);navigator.clipboard&&navigator.clipboard.writeText(l);showToast('Invite link copied!');}
+
+// ── RESET ROOM (host only) ──
+// Kicks all guests so they reconnect fresh, restores host to the original room creator,
+// then immediately re-admits everyone — like a silent leave+rejoin in a fraction of a second.
+function confirmResetRoom(){
+  document.getElementById('resetRoomModal').style.display='none';
+  if(!ST.isHost)return;
+
+  // ── 1. Collect the snapshot of guests BEFORE we wipe anything ──
+  const guestsBefore=ST.players.filter(p=>p.id!==ST.myId);
+
+  // ── 2. Reset all game state ──
+  ST.mode='';
+  ST.currentRound=0;
+  ST.roundResults={};
+  ST.votes={};
+  ST.voteSubmitted=false;
+  ST.impVoteChance=1;
+
+  // ── 3. Determine who should be host after reset ──
+  // Always the original room creator. If the current host IS the original creator,
+  // nothing changes. If host was transferred, transfer back.
+  const originalId=ST._originalHostId||ST.myId;
+  const originalPlayer=ST.players.find(p=>p.id===originalId);
+
+  if(originalId!==ST.myId && originalPlayer){
+    // Current user is not the original creator — hand host back
+    // (Re-use transferHost logic but inline to avoid modal side-effects)
+    const target=originalPlayer;
+    const targetId=target.id;
+    ST.players=ST.players.filter(p=>p.id!==ST.myId);
+    const ci=ST.players.length%15;
+    // Current host becomes a normal guest entry
+    ST.players.push({id:ST.myId,name:ST.myName,color:ci,avatar:ST.myAvatar||null});
+    ST.players=ST.players.filter(p=>p.id!==targetId);
+    ST.players.unshift({...target});
+    Object.keys(ST.scores).forEach(k=>{ST.scores[k]=0;});
+    // Tell everyone about the transfer + reset
+    const newRoster=ST.players;
+    broadcast({type:'room_reset_kick',hostId:ST.myId,newHostId:targetId,
+      players:newRoster,scores:ST.scores,maxPlayers:ST.maxPlayers,roomName:ST.roomName});
+    // Demote self
+    ST.isHost=false;
+    ST.hostPeerId=targetId;
+    stopWatchdog();startHeartbeat();
+    _peerLastSeen={};
+    showLobby();
+    showToast('Room reset — host returned to original owner.');
+    return;
+  }
+
+  // ── 4. Current host IS the original creator ──
+  // Reset scores to 0
+  Object.keys(ST.scores).forEach(k=>{ST.scores[k]=0;});
+  // Put host at index 0
+  const myIdx=ST.players.findIndex(p=>p.id===ST.myId);
+  if(myIdx>0){const me=ST.players.splice(myIdx,1)[0];ST.players.unshift(me);}
+
+  // ── 5. Tell all guests to silently disconnect and rejoin ──
+  // We send each guest a 'kicked_reset' (new type) so they know to auto-reconnect,
+  // NOT go to the home screen. Then we clear the roster — the host will re-admit them
+  // as their fresh join messages arrive.
+  guestsBefore.forEach(g=>{
+    try{send(g.id,{type:'kicked_reset',roomCode:ST.roomCode,hostId:ST.myId});}catch(e){}
+  });
+
+  // Clear roster to just the host — guests rejoin in a moment
+  ST.players=[{id:ST.myId,name:ST.myName,color:0,avatar:ST.myAvatar||null}];
+
+  // Give the watchdog a clean slate
+  _peerLastSeen={};
+
+  showLobby();
+  showToast('Room reset — players are reconnecting…');
+}
 // Renders a player's avatar — their synced photo if they have one, else the default colored initial circle
 function avatarHTML(p,extraClass){
   const cls='av'+(extraClass?(' '+extraClass):'');
@@ -4134,6 +4694,11 @@ function renderLobby(){
     }
   }
   if(ST.isHost&&_roomVisibility==='public')announcePublicRoom();
+  // Re-render Golden Spot settings when player count changes (options depend on player count)
+  if(ST.isHost&&ST.mode==='goldenspot'){
+    const box=document.getElementById('modeSettings');
+    if(box&&box.innerHTML!=='')renderModeSettings('goldenspot');
+  }
   // Host is always first player in array (index 0 = current host)
   const hostId=ST.players.length>0?ST.players[0].id:null;
   let html=ST.players.map((p,i)=>{
@@ -4189,7 +4754,15 @@ function makeRoomHost(targetId){
   // Host is always index 0 — move the target there, keep everyone else in place.
   ST.players=[target,...ST.players.filter(p=>p.id!==targetId)];
   ST.isHost=false;
-  broadcast({type:'host_transfer',players:ST.players,scores:ST.scores,maxPlayers:ST.maxPlayers,mode:ST.mode,roomName:ST.roomName,newHostId:targetId,roomVisibility:_roomVisibility});
+  // The broadcast channel uses {self:false}, so the sender never receives its
+  // own 'host_transfer' message — meaning the receive-handler's hostPeerId
+  // update (ST.hostPeerId=d.newHostId) would never run for the outgoing host.
+  // Without this, the demoted host keeps addressing send(ST.hostPeerId,...)
+  // calls (game results, holdStart, votes, etc.) to its own stale old address,
+  // which nobody listens to anymore — those messages silently vanish and the
+  // new host waits forever for that player's result. Update it locally here.
+  ST.hostPeerId=targetId;
+  broadcast({type:'host_transfer',players:ST.players,scores:ST.scores,maxPlayers:ST.maxPlayers,mode:ST.mode,roomName:ST.roomName,newHostId:targetId,roomVisibility:_roomVisibility,originalHostId:ST._originalHostId||ST.myId});
   // If this room was public, the old host stops announcing it (isHost is now
   // false, so the heartbeat interval self-clears on its next tick) — the new
   // host picks up announcing below once they process the host_transfer message.
@@ -4314,6 +4887,13 @@ const MODES=[
      {label:'Decoy difficulty',id:'s_ttDiff',type:'select',val:'medium',opts:['easy','medium','hard']},
      {label:'Starting hearts',id:'s_ttHearts',type:'select',val:3,opts:[1,2,3,4,5]}
    ]},
+  {id:'goldenspot', icon:'🪙', name:'Golden Spot', tag:'Reflex • Elimination', color:'#F5B942', new:true,
+   desc:'The table has spots — most are GOLDEN, one is DANGER. The table spins and stops randomly. React fast and claim a golden spot! Whoever is left on a danger spot is out. Each round removes one spot until only one player remains.',
+   settings:[
+     {label:'Total number of holes',id:'s_gsTotalHoles',type:'select',val:6,opts:[4,5,6,7,8,9,10,12]},
+     {label:'Number of Traps',id:'s_gsNumTraps',type:'select',val:2,opts:[1,2,3,4,5]},
+     {label:'Rounds scoring',id:'s_gsRoundsScoring',type:'checkbox',val:false}
+   ]},
   {id:'ciphervault', icon:'🔐', name:'Cipher Vault', tag:'Memory • Speed • Decode', color:'#A855F7', new:true,
    desc:'A secret cipher maps 9 letters to 9 digits. A random code appears — decode each letter into its number and enter it on the keypad to crack the vault. The last player to finish each round is eliminated. Last one standing wins!',
    settings:[
@@ -4322,6 +4902,10 @@ const MODES=[
    ]}
 ];
 
+// Modes flagged `hidden:true` are excluded from every menu/picker/random-select
+// surface below, but stay fully defined in MODES so id-lookups (settings,
+// room badges, in-progress games, etc.) still resolve correctly.
+const SELECTABLE_MODES=MODES.filter(m=>!m.hidden);
 // ── COMING SOON MODES ──
 const COMING_SOON_MODES=[
   {icon:'⛓️', name:'Blind Relay',      tag:'Team • Coordination'},
@@ -4339,7 +4923,7 @@ function renderLobbyModesPanel(activeModeId){
   const list=document.getElementById('lobbyModesList');
   if(!list)return;
 
-  const activeModes=MODES.map(m=>`
+  const activeModes=SELECTABLE_MODES.map(m=>`
     <div class="lobby-mode-item${activeModeId===m.id?' active-mode':''}"
          style="--lm-color:${m.color}">
       <div class="lobby-mode-icon">${m.icon}</div>
@@ -4401,10 +4985,80 @@ function getModeSettings(){
   return res;
 }
 
+// ── Golden Spot: compute valid hole/trap options based on player count ──
+// Rules:
+//   - totalHoles minimum = playerCount (every player needs at least a hole)
+//   - numGolden = playerCount - 1  (one player eliminated per round → needs N-1 golden spots)
+//   - numTraps maximum = totalHoles - numGolden  (remaining holes after golden spots)
+//   - numTraps minimum = 1
+function gsGetValidHoleOpts(playerCount){
+  const minHoles=Math.max(4,playerCount);
+  const allOpts=[4,5,6,7,8,9,10,12];
+  return allOpts.filter(o=>o>=minHoles);
+}
+function gsGetValidTrapOpts(playerCount,totalHoles){
+  const numGolden=playerCount-1;
+  const maxTraps=totalHoles-numGolden;
+  const opts=[];
+  for(let i=1;i<=maxTraps;i++)opts.push(i);
+  return opts.length?opts:[1];
+}
+function gsUpdateTrapsOpts(){
+  const playerCount=ST.players?ST.players.length:2;
+  const holesSel=document.getElementById('s_gsTotalHoles');
+  const trapsSel=document.getElementById('s_gsNumTraps');
+  if(!holesSel||!trapsSel)return;
+  const totalHoles=parseInt(holesSel.value)||6;
+  const curTraps=parseInt(trapsSel.value)||2;
+  const validTraps=gsGetValidTrapOpts(playerCount,totalHoles);
+  trapsSel.innerHTML=validTraps.map(o=>`<option value="${o}"${o===curTraps&&validTraps.includes(curTraps)?' selected':o===validTraps[0]&&!validTraps.includes(curTraps)?' selected':''}>${o}</option>`).join('');
+  broadcastSettings();
+}
+
 function renderModeSettings(modeId){
   const m=MODES.find(x=>x.id===modeId);
   const box=document.getElementById('modeSettings');
   if(!m||!m.settings||m.settings.length===0){box.innerHTML='';return;}
+
+  if(modeId==='goldenspot'){
+    // Build dynamic options from current player count
+    const playerCount=ST.players?Math.max(2,ST.players.length):2;
+    const curHoles=parseInt((ST._gsTotalHoles||6));
+    const curTraps=parseInt((ST._gsNumTraps||2));
+    const validHoles=gsGetValidHoleOpts(playerCount);
+    const defHoles=validHoles.includes(curHoles)?curHoles:validHoles[0];
+    const validTraps=gsGetValidTrapOpts(playerCount,defHoles);
+    const defTraps=validTraps.includes(curTraps)?curTraps:Math.min(curTraps,validTraps[validTraps.length-1]);
+
+    const curRoundsScoring=!!(ST._gsRoundsScoring);
+    const hintText=`Min holes = ${playerCount} players · Max traps = holes − ${playerCount-1} golden`;
+    box.innerHTML=`<div class="settings-box" style="margin-bottom:12px">
+      <div class="settings-row">
+        <span class="set-label">Total number of holes</span>
+        <select class="set-input" id="s_gsTotalHoles" onchange="gsUpdateTrapsOpts()">
+          ${validHoles.map(o=>`<option value="${o}"${o===defHoles?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="settings-row">
+        <span class="set-label">Number of Traps</span>
+        <select class="set-input" id="s_gsNumTraps" onchange="broadcastSettings()">
+          ${validTraps.map(o=>`<option value="${o}"${o===defTraps?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="settings-row">
+        <span class="set-label">Rounds scoring</span>
+        <input type="checkbox" id="s_gsRoundsScoring" ${curRoundsScoring?'checked':''} onchange="broadcastSettings()" style="width:18px;height:18px;accent-color:var(--c1)">
+      </div>
+      <div id="gs-rounds-hint" style="font-size:10px;color:var(--text3);padding:4px 2px 2px;line-height:1.4">${curRoundsScoring?'Losers earn points by round — first out gets fewest, winner gets most.':hintText}</div>
+    </div>`;
+    // Live-update the hint when the checkbox toggles
+    document.getElementById('s_gsRoundsScoring').addEventListener('change',function(){
+      const hint=document.getElementById('gs-rounds-hint');
+      if(hint)hint.textContent=this.checked?'Losers earn points by round — first out gets fewest, winner gets most.':hintText;
+    });
+    return;
+  }
+
   box.innerHTML='<div class="settings-box" style="margin-bottom:12px">'+m.settings.map(s=>`
     <div class="settings-row">
       <span class="set-label">${s.label}</span>
@@ -4455,8 +5109,8 @@ function toggleRandomTargetDisable(){
 function renderModeGrid(){
   const grid=document.getElementById('modeGrid');
   if(!grid)return;
-  grid.innerHTML=MODES.map(m=>`
-    <button class="mode-card-btn${ST.mode===m.id?' selected':''}" onclick="setModeUI('${m.id}')" style="border-color:${ST.mode===m.id?m.color:''};${!ST.mode?'animation:modePulseRing 1.6s ease-in-out infinite;animation-delay:'+((MODES.indexOf(m)*0.08).toFixed(2))+'s':''}">
+  grid.innerHTML=SELECTABLE_MODES.map(m=>`
+    <button class="mode-card-btn${ST.mode===m.id?' selected':''}" onclick="setModeUI('${m.id}')" style="border-color:${ST.mode===m.id?m.color:''};${!ST.mode?'animation:modePulseRing 1.6s ease-in-out infinite;animation-delay:'+((SELECTABLE_MODES.indexOf(m)*0.08).toFixed(2))+'s':''}">
       ${m.new?'<span class="mode-card-new">NEW</span>':''}
       <span class="mode-card-icon">${m.icon}</span>
       <span class="mode-card-name">${m.name}</span>
@@ -4503,7 +5157,9 @@ function hideLeaveNotif(){
 
 // ── ROUND ROUTING ──
 function routeToGameScreen(){
-  hideLobbyChat();
+  // Keep the chat bubble visible during the game — players can still chat mid-round.
+  // We no longer call hideLobbyChat() here; the bubble stays alive across all in-room screens.
+  showLobbyChat(); // ensure bubble is visible even for guests going directly to a game screen
   // ── TURN CLEANUP: reset audio graph before every new turn ──
   // stopBeeping() + resetAudioContext() together guarantee:
   //   1. The beep setInterval is cleared (only one can exist)
@@ -4536,6 +5192,7 @@ function routeToGameScreen(){
   if(ST.mode==='clock'){initClock();return;}
   if(ST.mode==='taptrap'){initTapTrap();return;}
   if(ST.mode==='ciphervault'){initCipherVault();return;}
+  if(ST.mode==='goldenspot'){initGoldenSpot();return;}
   showRole();
 }
 
@@ -4691,7 +5348,7 @@ function submitFlash(){
     broadcast({type:'result',id:ST.myId,time:correct,name:mp?.name||'?',typed,digits});
     checkAllResults();
   } else {
-    send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:correct,name:mp?.name||'?',typed,digits});
+    send(ST.hostPeerId,{type:'result',id:ST.myId,time:correct,name:mp?.name||'?',typed,digits});
   }
 }
 
@@ -4902,7 +5559,7 @@ function startChain(e){
       _chainBustedPlayers.add(ST.myId);renderChainSideList(null);
       const res={type:'chain_result',id:ST.myId,held,busted:true,newUsed};
       if(ST.isHost)processChainResult(res);
-      else send('cp-host-'+ST.roomCode,res);
+      else send(ST.hostPeerId,res);
     }
   },remaining*1000);
 }
@@ -4926,7 +5583,7 @@ function stopChain(e){
 
   const res={type:'chain_result',id:ST.myId,held,busted,newUsed};
   if(ST.isHost)processChainResult(res);
-  else send('cp-host-'+ST.roomCode,res);
+  else send(ST.hostPeerId,res);
 }
 
 function processChainResult(d){
@@ -4938,8 +5595,9 @@ function processChainResult(d){
     ST.roundResults[d.id]={time:d.held,busted:true,score:0};
     if(!ST.scores[d.id])ST.scores[d.id]=0;
     showToast((ST.players.find(p=>p.id===d.id)?.name||'?')+' busted! Round over!');
-    // End round immediately — only ONE person gets busted
-    endChainRound();
+    renderChainSideList(null); // show 💥 immediately so everyone sees who got busted
+    // Short pause (1.1 s) so players can see the bust animation before results land
+    setTimeout(()=>endChainRound(), 1100);
   } else {
     const pts=Math.round((1-(d.held/_chainLimit))*50)+50;
     ST.roundResults[d.id]={time:d.held,busted:false,score:pts};
@@ -4981,6 +5639,859 @@ function clearTapTrapTimers(){
   if(_ttMyTimer){clearTimeout(_ttMyTimer);_ttMyTimer=null;}
   if(_ttHostTimer){clearTimeout(_ttHostTimer);_ttHostTimer=null;}
   _ttRoundActive=false;_ttMyTurn=false;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 🪙 GOLDEN SPOT MODE
+//
+// Flow (host-authoritative):
+//  1. Host broadcasts gs_round: {spots, spinMs, claimMs, round, aliveIds}
+//     spots = [{id, type:'golden'|'danger', angle, x, y}]
+//     All clients show the spinning table, then reveal spots and open claim window.
+//  2. Each player taps "Claim your spot" (or auto-selects) → sends gs_claim to host.
+//  3. Host resolves who got which spot (fastest claim per spot, one player per spot).
+//     Player on the danger spot OR slowest player with no spot is eliminated.
+//  4. Host broadcasts gs_elim: {elimId, elimName, aliveIds, claimedMap}
+//     All clients show the elimination banner then highlight spots.
+//  5. If >1 alive, host removes one spot and repeats; else broadcasts gs_end (winner).
+// ══════════════════════════════════════════════════════════════════════
+
+let _gsEliminated = new Set();
+let _gsAlive      = null;   // array of alive player IDs (host updates each round)
+let _gsDone       = false;
+let _gsSpinTimer  = null;
+let _gsClaimTimer = null;
+let _gsClaims     = {};     // host: {playerId: timestamp} claims received this round
+let _gsMySpotId   = null;   // which spot this client claimed
+let _gsMyLockedIn = false;  // true once a golden spot is confirmed — prevents any further clicks
+let _gsRound      = 0;      // current round number (display)
+let _gsSpots      = [];     // current spots layout [{id,type,x,y,angle}]
+let _gsSpotOwner  = {};     // HOST ONLY: spotId -> playerId, live-updated as claims are accepted
+let _gsLockedSpots = new Set(); // CLIENT: spot ids already claimed by someone, real-time
+let _gsEliminationOrder = []; // ordered list of eliminated player IDs (first out first)
+
+// ── CLIENT: is this device out of the round (spectating)? ─────────────
+function gsIsSpectator() {
+  return _gsEliminated.has(ST.myId) || (_gsAlive && !_gsAlive.includes(ST.myId));
+}
+
+// ── CLIENT: set the claim status label — shows "Spectator" for anyone
+//    already eliminated instead of claim prompts, since they're just
+//    watching the remaining players now.
+function gsSetClaimLabel(text) {
+  const btn = document.getElementById('gsClaimBtn');
+  if (!btn) return;
+  if (gsIsSpectator()) {
+    btn.textContent = '👀 Spectator';
+    btn.classList.add('gs-spectator');
+    btn.classList.remove('gs-claimed-confirmed');
+  } else {
+    btn.classList.remove('gs-spectator');
+    let textEl = btn.querySelector('.gs-claim-text');
+    if (!textEl) {
+      btn.innerHTML = '<span class="gs-claim-text"></span><span class="gs-claim-check">✅ Claimed!</span>';
+      textEl = btn.querySelector('.gs-claim-text');
+    }
+    textEl.textContent = text;
+  }
+}
+
+// ── CLIENT: toggle the green checkmark stamp over the claim bar ───────
+function gsSetClaimConfirmed(isConfirmed) {
+  const btn = document.getElementById('gsClaimBtn');
+  if (!btn) return;
+  btn.classList.toggle('gs-claimed-confirmed', !!isConfirmed);
+}
+
+// ── Spot layout: dynamic holes on the cylinder ────────────────────────
+// Returns N evenly-spaced hole positions, indexed 0…N-1.
+// holeSize shrinks slightly when there are many holes to avoid overlap.
+function gsAllHolePositions(n) {
+  n = n || 6;
+  const holes  = [];
+  // Tighten radius slightly for large hole counts so spots don't overlap
+  const coverR = n <= 6 ? 38 : n <= 8 ? 36 : 33;
+  for (let i = 0; i < n; i++) {
+    const ang = (360 / n) * i;
+    const rad = ang * Math.PI / 180;
+    const x   = 50 + coverR * Math.sin(rad);
+    const y   = 50 - coverR * Math.cos(rad);
+    holes.push({ holeIndex: i, x, y });
+  }
+  return holes;
+}
+
+// ── HOST ONLY: kick off a new round ───────────────────────────────────
+function gsHostStartRound() {
+  if (_gsDone) return;
+  if (!_gsAlive) _gsAlive = ST.players.map(p => p.id);
+  _gsRound++;
+
+  const alive = _gsAlive.filter(id => !_gsEliminated.has(id));
+  if (alive.length <= 1) { gsHostEnd(alive[0] || null); return; }
+
+  const numGolden     = alive.length - 1;       // always one fewer golden than players
+  const numTraps      = ST._gsNumTraps  || 2;
+  const totalHoles    = ST._gsTotalHoles || 6;
+  // emptyHoles fills the rest: total - golden - traps (min 0)
+  const numEmpty      = Math.max(0, totalHoles - numGolden - numTraps);
+  const nSpots        = numGolden + numTraps;   // visible buttons (empty holes are just empty)
+  const totalHolesNeeded = nSpots + numEmpty;   // == totalHoles (unless clamped below)
+
+  // Build positions for exactly totalHoles evenly-spaced holes
+  const allHoles = gsAllHolePositions(totalHoles);
+  const usedHoles = allHoles.length; // == totalHoles
+  const shuffledHoles = [...allHoles].sort(() => Math.random() - .5).slice(0, usedHoles);
+
+  // First nSpots holes get buttons; the rest stay visually empty
+  const buttonHoles = shuffledHoles.slice(0, Math.min(nSpots, shuffledHoles.length));
+
+  // Randomly designate numTraps of the button holes as danger
+  const shuffledBtn = [...buttonHoles].sort(() => Math.random() - .5);
+  const dangerHoles = new Set(shuffledBtn.slice(0, numTraps).map(h => h.holeIndex));
+
+  const spots = buttonHoles.map((hole) => ({
+    id: 'spot' + hole.holeIndex,
+    holeIndex: hole.holeIndex,
+    x: hole.x,
+    y: hole.y,
+    type: dangerHoles.has(hole.holeIndex) ? 'danger' : 'golden'
+  }));
+  _gsSpots = spots;
+  _gsClaims = {};
+  _gsSpotOwner = {}; // host-only: spotId -> playerId, updated live as claims land
+
+  const spinMs  = (ST._gsSpinTime  || 3) * 1000;
+  const claimMs = (ST._gsClaimTime || 4) * 1000;
+
+  const payload = {
+    type: 'gs_round', round: _gsRound,
+    spots, spinMs, claimMs, aliveIds: alive,
+    totalHoles: totalHoles
+  };
+  broadcast(payload);
+  applyGsRound(payload); // host applies to itself
+
+  // No background timer here — the round only resolves once every golden
+  // spot has been claimed (see gsHostCheckEarlyResolve), so slower players
+  // are never auto-eliminated by a clock running out.
+}
+
+// ── HOST ONLY: a guest sent their claim — validate & lock it LIVE ─────
+function gsHostReceiveClaim(d, from) {
+  if (_gsDone) return;
+  if (!_gsAlive || !_gsAlive.includes(from)) return;   // not alive / spectating
+  if (_gsClaims[from]) return;                          // already locked a golden spot this round
+
+  const spotId = d.spotId;
+  const spot = _gsSpots.find(s => s.id === spotId);
+  if (!spot) return;
+
+  // Someone already got there first — reject silently
+  if (_gsSpotOwner[spotId]) {
+    send(from, {type: 'gs_claim_rejected', spotId});
+    return;
+  }
+
+  // ── DANGER HIT: do NOT lock the player in — it's a failed attempt ────
+  if (spot.type === 'danger') {
+    // Tell everyone to play the BOOM animation on the spot & on the clicker's screen
+    const name = ST.players.find(p => p.id === from)?.name || '?';
+    const msg = {type: 'gs_danger_hit', spotId, playerId: from, playerName: name};
+    broadcast(msg);
+    applyGsDangerHit(msg); // host applies to itself
+    // Spot stays open — _gsSpotOwner[spotId] deliberately NOT set
+    // _gsClaims[from] deliberately NOT set so player can try again
+    return;
+  }
+
+  // ── GOLDEN HIT: lock immediately ─────────────────────────────────────
+  _gsSpotOwner[spotId] = from;
+  _gsClaims[from] = {t: Date.now(), spotId};
+
+  const name = ST.players.find(p => p.id === from)?.name || '?';
+  const msg = {type: 'gs_spot_locked', spotId, playerId: from, playerName: name};
+  broadcast(msg);
+  applyGsSpotLocked(msg); // host applies to itself too
+
+  gsHostCheckEarlyResolve();
+}
+
+// ── HOST ONLY: once every golden spot has an owner, the outcome for the
+//    one player left without a spot is already determined — resolve now
+//    instead of waiting out the rest of the claim window.
+function gsHostCheckEarlyResolve() {
+  if (_gsDone) return;
+  const alive = (_gsAlive || []).filter(id => !_gsEliminated.has(id));
+  const goldenSpots = _gsSpots.filter(s => s.type === 'golden');
+  const goldenTaken = goldenSpots.filter(s => _gsSpotOwner[s.id]);
+  if (goldenTaken.length >= goldenSpots.length) {
+    clearTimeout(_gsClaimTimer); _gsClaimTimer = null;
+    gsHostResolve(_gsSpots, alive);
+  }
+}
+
+// ── HOST ONLY: resolve who got what spot ──────────────────────────────
+function gsHostResolve(spots, alive) {
+  if (_gsDone) return;
+  clearTimeout(_gsClaimTimer); _gsClaimTimer = null;
+
+  // Claims are now locked live as they're accepted (see gsHostReceiveClaim),
+  // including the host's own — nothing left to backfill here.
+
+  // Sort claims by time (fastest first)
+  const sorted = Object.entries(_gsClaims)
+    .sort((a, b) => a[1].t - b[1].t);
+
+  // Assign spots: each alive player claims their preferred spot; conflicts resolved by speed
+  const spotTaken = {}; // spotId → playerId
+  const playerSpot = {}; // playerId → spotId
+
+  sorted.forEach(([pid, info]) => {
+    if (!alive.includes(pid)) return;
+    if (!spotTaken[info.spotId]) {
+      spotTaken[info.spotId] = pid;
+      playerSpot[pid] = info.spotId;
+    }
+  });
+
+  // Any alive player who didn't claim or whose spot was taken has no spot → eliminated
+  // Among those, also check who landed on danger
+  const dangerSpotId = spots.find(s => s.type === 'danger')?.id;
+  let elimId = null;
+
+  // Priority 1: someone on the danger spot
+  const onDanger = Object.entries(playerSpot).find(([pid, sid]) => sid === dangerSpotId);
+  if (onDanger) elimId = onDanger[0];
+
+  // Priority 2: player with no spot (slowest / didn't claim)
+  if (!elimId) {
+    const noClaim = alive.find(id => !playerSpot[id]);
+    if (noClaim) elimId = noClaim;
+  }
+
+  // If all players somehow landed on golden (shouldn't happen but be safe), pick slowest claimer
+  if (!elimId) {
+    const slowest = alive.find(id => {
+      const claimed = sorted.findIndex(([pid]) => pid === id);
+      return claimed === sorted.length - 1;
+    });
+    elimId = slowest || alive[alive.length - 1];
+  }
+
+  if (elimId) {
+    _gsEliminated.add(elimId);
+    _gsEliminationOrder.push(elimId);
+    _gsAlive = alive.filter(id => id !== elimId);
+  }
+
+  const elimName = ST.players.find(p => p.id === elimId)?.name || '?';
+  const msg = {
+    type: 'gs_elim', elimId, elimName,
+    aliveIds: _gsAlive,
+    claimedMap: playerSpot,
+    dangerSpotId
+  };
+  broadcast(msg);
+  applyGsElim(msg);
+
+  // After showing elim banner, either next round or end
+  setTimeout(() => {
+    if (_gsAlive.length <= 1) {
+      gsHostEnd(_gsAlive[0] || null);
+    } else {
+      gsHostStartRound();
+    }
+  }, 3200);
+}
+
+// ── HOST ONLY: game over ───────────────────────────────────────────────
+function gsHostEnd(winnerId) {
+  _gsDone = true;
+
+  if (ST._gsRoundsScoring) {
+    // Rounds scoring: award points by placement.
+    // First eliminated = fewest pts, winner = most pts.
+    // Scale: each player earns (placement × 10) pts, where placement 1 = first out, N = winner.
+    const total = ST.players.length;
+    // _gsEliminationOrder[0] = first out (rank 1), ..., last entry = 2nd place (rank N-1)
+    // Winner is rank N (most points)
+    _gsEliminationOrder.forEach((pid, i) => {
+      const placement = i + 1; // 1 = first out (lowest), total-1 = 2nd place
+      const pts = placement * 10;
+      ST.scores[pid] = (ST.scores[pid] || 0) + pts;
+    });
+    if (winnerId) {
+      const winnerPts = total * 10;
+      ST.scores[winnerId] = (ST.scores[winnerId] || 0) + winnerPts;
+      const name = ST.players.find(p => p.id === winnerId)?.name || '?';
+      showToast(name + ' wins! 🏆 (+' + winnerPts + 'pts)');
+    }
+  } else {
+    // Default: winner takes 100pts, no points for anyone else
+    if (winnerId) {
+      ST.scores[winnerId] = (ST.scores[winnerId] || 0) + 100;
+      const name = ST.players.find(p => p.id === winnerId)?.name || '?';
+      showToast(name + ' is the last one standing! 🏆');
+    }
+  }
+
+  setTimeout(() => {
+    broadcast({type: 'gs_end', winnerId, scores: ST.scores, elimOrder: _gsEliminationOrder});
+    applyGsEnd({winnerId, scores: ST.scores, elimOrder: _gsEliminationOrder});
+  }, 1400);
+}
+
+// ── CLIENT: initialise the screen ─────────────────────────────────────
+function initGoldenSpot() {
+  show('goldenspot');
+  _gsDone = false;
+  _gsMySpotId = null;
+  _gsMyLockedIn = false;
+  _gsRound = 0;
+  _gsEliminationOrder = [];
+  if (!_gsEliminated) _gsEliminated = new Set();
+  gsSetClaimConfirmed(false);
+  { const w = document.getElementById('gsTableWrap'); if (w) w.classList.remove('my-locked-in'); }
+
+  // Hide claim label and controls until spin stops
+  const claimBtn = document.getElementById('gsClaimBtn');
+  const controls = document.getElementById('gsControls');
+  if (claimBtn) claimBtn.style.display = 'none';
+  if (controls) controls.style.display = 'none';
+
+  const rlBtn = document.getElementById('gsReturnLobbyBtn');
+  if (rlBtn) rlBtn.style.display = ST.isHost ? '' : 'none';
+
+  renderGsPlayerRow(null);
+  document.getElementById('gsPhaseLabel').textContent = '⏳ Spinning…';
+  document.getElementById('gsClaimBtn').classList.remove('gs-spectator');
+  gsSetClaimLabel('🪙 Claim your spot');
+  document.getElementById('gsRoundBadge').textContent = 'ROUND 1';
+
+  gsStartCountdown(() => {
+    if (ST.isHost) gsHostStartRound();
+  });
+}
+
+// ── CLIENT: 5-second countdown before first spin ──────────────────────
+function gsStartCountdown(cb) {
+  const ov  = document.getElementById('gsCountdown');
+  const num = document.getElementById('gsCountdownNum');
+  let n = 5;
+  if (ov)  ov.style.display  = 'flex';
+  if (num) num.textContent   = n;
+  if (typeof playClick === 'function') playClick();
+  if (window._gsCdInt) clearInterval(window._gsCdInt);
+  window._gsCdInt = setInterval(() => {
+    n--;
+    if (n > 0) { if (num) num.textContent = n; if (typeof playClick === 'function') playClick(); }
+    else { clearInterval(window._gsCdInt); window._gsCdInt = null; if (ov) ov.style.display = 'none'; cb(); }
+  }, 1000);
+}
+
+// ── CLIENT: apply a gs_round broadcast ────────────────────────────────
+function applyGsRound(d) {
+  _gsSpots   = d.spots;
+  _gsRound   = d.round;
+  _gsMySpotId = null;
+  _gsMyLockedIn = false;
+  _gsLockedSpots = new Set();
+  if (d.aliveIds) _gsAlive = d.aliveIds;
+  gsSetClaimConfirmed(false);
+  { const w = document.getElementById('gsTableWrap'); if (w) w.classList.remove('my-locked-in'); }
+
+  document.getElementById('gsRoundBadge').textContent = 'ROUND ' + d.round;
+  document.getElementById('gsPhaseLabel').textContent = '🌀 Spinning…';
+
+  // Hide claim label and controls while spinning
+  const _claimBtn = document.getElementById('gsClaimBtn');
+  const _controls = document.getElementById('gsControls');
+  if (_claimBtn) _claimBtn.style.display = 'none';
+  if (_controls) _controls.style.display = 'none';
+
+  const spinMs = d.spinMs || 3000;
+  const spots  = d.spots;           // final revealed spots from host (gameplay unchanged)
+
+  // ── Build revolver cylinder ──────────────────────────────────────────
+  // Always render ALL 6 fixed holes on the cover (the cylinder "slots").
+  // After the spin, buttons are spawned as children of the randomly chosen holes only.
+  const disc  = document.getElementById('gsDisc');
+  const cover = document.getElementById('gsCover');
+  disc.innerHTML  = '';
+  cover.innerHTML = '';
+
+  const TOTAL_HOLES = d.totalHoles || ST._gsTotalHoles || 6;
+  // Scale hole size down slightly for more holes to avoid crowding
+  const holeSize = TOTAL_HOLES <= 6 ? 22 : TOTAL_HOLES <= 8 ? 19 : 16;
+  const coverR   = TOTAL_HOLES <= 6 ? 38 : TOTAL_HOLES <= 8 ? 36 : 33;
+
+  // Cover holes: all TOTAL_HOLES fixed positions — these never move.
+  // Build a map from holeIndex → cover hole element for button placement later.
+  const coverHoleMap = {}; // holeIndex → DOM element
+  for (let i = 0; i < TOTAL_HOLES; i++) {
+    const ang = (360 / TOTAL_HOLES) * i;
+    const rad = ang * Math.PI / 180;
+    const x   = 50 + coverR * Math.sin(rad);
+    const y   = 50 - coverR * Math.cos(rad);
+    const win = document.createElement('div');
+    win.className = 'gs-cover-hole';
+    win.style.cssText = `width:${holeSize}%;height:${holeSize}%;` +
+                        `left:${x - holeSize/2}%;top:${y - holeSize/2}%`;
+    win.style.background = 'radial-gradient(circle at 40% 35%,#1e1c33,#0f0d1f)';
+    cover.appendChild(win);
+    coverHoleMap[i] = win;
+  }
+
+  // ── Spin animation via requestAnimationFrame ─────────────────────────
+  // Ease-out curve: fast at start, decelerates toward end.
+  // Total rotation = random 3–6 full turns + random offset so it stops randomly.
+  const totalTurns = 3 + Math.floor(Math.random() * 4);
+  const extraDeg   = Math.random() * 360;
+  const totalDeg   = totalTurns * 360 + extraDeg;
+
+  // Slow-down starts at 70% of spinMs
+  const slowStart  = 0.70;
+  let   startTime  = null;
+  let   lastDeg    = 0;
+
+  function easeOut(t) {
+    // Cubic ease-out: fast → gradual stop
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function spinFrame(ts) {
+    if (!startTime) startTime = ts;
+    const elapsed = ts - startTime;
+    const t       = Math.min(elapsed / spinMs, 1);
+    const deg     = easeOut(t) * totalDeg;
+    cover.style.transform = `rotate(${deg}deg)`;
+    lastDeg = deg;
+    if (t < 1) {
+      _rafId = requestAnimationFrame(spinFrame);
+    } else {
+      onSpinComplete();
+    }
+  }
+
+  // ── After spin: reveal spots through their assigned holes ───────────
+  function onSpinComplete() {
+    cover.style.transform = `rotate(${lastDeg}deg)`;
+    document.getElementById('gsPhaseLabel').textContent = '🪙 Claim your spot!';
+
+    // Each spot carries a holeIndex (0–5) telling us which of the 6 fixed cover
+    // holes it lives in. Spawn the button as a child of that specific hole element.
+    // The other holes remain empty (dark), preserving the random placement effect.
+    spots.forEach((s, i) => {
+      const win = coverHoleMap[s.holeIndex];
+      if (!win) return;
+      // Clear grey background — real spot revealed
+      win.style.background = '';
+
+      // Create clickable spot reveal element inside the correct cover hole
+      const rev = document.createElement('div');
+      rev.className = 'gs-spot-reveal ' + s.type + ' pulse-in';
+      rev.id = 'gsspot-' + s.id;
+      rev.innerHTML = `<span class="gs-spot-icon" style="display:inline-block;transform:rotate(${-lastDeg}deg)">${s.type === 'golden' ? '👑' : '💀'}</span>`;
+      rev.addEventListener('click', () => gsClientPickSpot(s.id));
+      win.appendChild(rev);
+
+      // Stagger the reveal for a satisfying pop-in effect
+      setTimeout(() => rev.classList.add('shown'), i * 80);
+    });
+
+    gsSetClaimLabel('🪙 Claim your spot!');
+
+    // Reveal the claim label and controls now that spinning has stopped
+    const claimBtnEl = document.getElementById('gsClaimBtn');
+    const controlsEl = document.getElementById('gsControls');
+    if (claimBtnEl) {
+      claimBtnEl.style.display = '';
+      claimBtnEl.style.opacity = '0';
+      claimBtnEl.style.transition = 'opacity 0.3s ease';
+      requestAnimationFrame(() => { claimBtnEl.style.opacity = '1'; });
+    }
+    if (controlsEl) {
+      controlsEl.style.display = 'flex';
+      controlsEl.style.opacity = '0';
+      controlsEl.style.transition = 'opacity 0.3s ease';
+      requestAnimationFrame(() => { controlsEl.style.opacity = '1'; });
+    }
+    // Ensure gsReturnLobbyBtn visibility is correct
+    const rlBtnEl = document.getElementById('gsReturnLobbyBtn');
+    if (rlBtnEl) rlBtnEl.style.display = ST.isHost ? '' : 'none';
+  }
+
+  // Label reflects phase via gsSetClaimLabel below (no disabled state needed — not a button)
+
+  // Start spin via RAF; store raf id separately for cancellation
+  let _rafId = null;
+  function startSpin() {
+    _rafId = requestAnimationFrame(spinFrame);
+  }
+
+  // Safety fallback timeout (RAF will normally beat this)
+  _gsSpinTimer = setTimeout(() => {
+    cancelAnimationFrame(_rafId);
+    onSpinComplete();
+  }, spinMs + 200);
+
+  startSpin();
+
+  renderGsPlayerRow(null);
+}
+
+// ── CLIENT: player picks a spot by tapping it ─────────────────────────
+function gsClientPickSpot(spotId) {
+  if (_gsMyLockedIn) return;                             // already confirmed golden — can't change
+  if (!_gsAlive || !_gsAlive.includes(ST.myId)) return;  // spectating
+  if (_gsLockedSpots.has(spotId)) return;                // someone beat you to it
+  _gsMySpotId = spotId;
+  gsClaimSpot();
+}
+
+// ── CLIENT: send claim to host ─────────────────────────────────────────
+function gsClaimSpot() {
+  if (_gsDone) return;
+  const alive = _gsAlive || [];
+  if (!alive.includes(ST.myId)) return;
+
+  // If no specific spot chosen (auto-claim fallback), pick any unclaimed golden spot
+  if (!_gsMySpotId) {
+    const golden = _gsSpots.filter(s => s.type === 'golden' && !_gsLockedSpots.has(s.id));
+    if (golden.length) _gsMySpotId = golden[Math.floor(Math.random() * golden.length)].id;
+    else {
+      const anyOpen = _gsSpots.find(s => !_gsLockedSpots.has(s.id));
+      if (anyOpen) _gsMySpotId = anyOpen.id;
+      else return; // nothing left open at all — will simply be resolved as "no spot"
+    }
+  }
+
+  // Show pending label; real lock-in happens in applyGsSpotLocked once the
+  // host confirms (golden) or applyGsDangerHit resets us (danger).
+  gsSetClaimLabel('⏳ Locking in…');
+
+  if (ST.isHost) {
+    gsHostReceiveClaim({spotId: _gsMySpotId}, ST.myId);
+  } else {
+    netSend({type: 'gs_claim', _from: ST.myId, spotId: _gsMySpotId});
+  }
+}
+
+// ── CLIENT: danger button hit — play BOOM, reset so spot stays open ───
+function applyGsDangerHit(d) {
+  const spotEl = document.getElementById('gsspot-' + d.spotId);
+  const isMine = d.playerId === ST.myId;
+
+  // Shake + briefly flash red the danger button
+  if (spotEl) {
+    spotEl.classList.remove('gs-danger-shake');
+    // Force reflow so re-adding the class re-triggers the animation
+    void spotEl.offsetWidth;
+    spotEl.classList.add('gs-danger-shake');
+    setTimeout(() => spotEl.classList.remove('gs-danger-shake'), 400);
+  }
+
+  if (isMine) {
+    // My screen: big BOOM overlay + red flash
+    _gsMySpotId = null; // clear so I can click again
+    gsSetClaimLabel('💥 Try again!');
+
+    const boom = document.getElementById('gsBoomOverlay');
+    const flash = document.getElementById('gsRedFlash');
+    if (boom) {
+      boom.style.display = 'flex';
+      boom.style.animation = 'none';
+      void boom.offsetWidth;
+      boom.style.animation = 'gsBoomFade 380ms ease forwards';
+      setTimeout(() => { boom.style.display = 'none'; }, 400);
+    }
+    if (flash) {
+      flash.style.display = 'block';
+      flash.style.animation = 'none';
+      void flash.offsetWidth;
+      flash.style.animation = 'gsRedFlash 400ms ease forwards';
+      setTimeout(() => { flash.style.display = 'none'; }, 420);
+    }
+    if (typeof playHeartBreak === 'function') playHeartBreak();
+  } else {
+    // Everyone else: just sees a brief toast
+    showToast(d.playerName + ' hit the danger spot! 💥');
+  }
+}
+
+// ── CLIENT: a spot was locked in — live update for everyone, instantly ──
+function applyGsSpotLocked(d) {
+  _gsLockedSpots.add(d.spotId);
+
+  const spotEl = document.getElementById('gsspot-' + d.spotId);
+  const isMine = d.playerId === ST.myId;
+  if (spotEl && !spotEl.classList.contains('claimed')) {
+    spotEl.classList.add('claimed');
+    if (isMine) {
+      spotEl.classList.add('mine-claim'); // no longer pickable
+    } else {
+      spotEl.classList.add('locked-out-noclaim'); // no pointer events, but no dimming
+    }
+    // Stamp on the claimed spot:
+    // — clicker sees plain green overlay, NO icon
+    // — everyone else sees green overlay with 🔒
+    const checkStamp = document.createElement('div');
+    checkStamp.className = 'gs-spot-stamp stamp-check';
+    if (!isMine) checkStamp.textContent = '🔒';
+    spotEl.appendChild(checkStamp);
+
+    const name = document.createElement('div');
+    name.className = 'gs-spot-name';
+    name.textContent = isMine ? 'You' : d.playerName;
+    spotEl.appendChild(name);
+  }
+
+  // After claiming MY spot: stamp 🚫 on every other still-open spot so I can't pick them
+  if (isMine) {
+    _gsSpots.forEach(s => {
+      if (s.id === d.spotId) return; // skip my claimed spot
+      const otherEl = document.getElementById('gsspot-' + s.id);
+      if (otherEl && !otherEl.querySelector('.gs-spot-stamp')) {
+        const unavailStamp = document.createElement('div');
+        unavailStamp.className = 'gs-spot-stamp stamp-unavail';
+        unavailStamp.textContent = '🚫';
+        otherEl.appendChild(unavailStamp);
+      }
+    });
+  }
+
+  if (isMine) {
+    _gsMySpotId = d.spotId;
+    _gsMyLockedIn = true; // golden confirmed — can't click anything else
+    gsSetClaimLabel('✅ Claimed!');
+    gsSetClaimConfirmed(true);
+    const wrap = document.getElementById('gsTableWrap');
+    if (wrap) wrap.classList.add('my-locked-in');
+  } else if (!_gsMyLockedIn) {
+    // Someone else just took a spot and I still haven't locked a golden one —
+    // if that was the last golden spot, I'm already out; reflect it now.
+    const golden = _gsSpots.filter(s => s.type === 'golden');
+    const goldenLeft = golden.some(s => !_gsLockedSpots.has(s.id));
+    if (!goldenLeft) {
+      gsSetClaimLabel('😬 Too slow…');
+    }
+  }
+}
+
+// ── CLIENT: my claim lost the race — someone else locked that spot first ─
+function applyGsClaimRejected(d) {
+  if (_gsMySpotId !== d.spotId) return; // stale/irrelevant
+  _gsMySpotId = null;
+  if (!_gsMyLockedIn) {
+    const golden = _gsSpots.filter(s => s.type === 'golden' && !_gsLockedSpots.has(s.id));
+    gsSetClaimLabel(golden.length ? '🪙 Claim your spot!' : '😬 Too slow…');
+  }
+}
+
+// ── CLIENT: apply gs_elim broadcast ───────────────────────────────────
+function applyGsElim(d) {
+  clearTimeout(_gsClaimTimer); _gsClaimTimer = null;
+  clearTimeout(_gsSpinTimer);  _gsSpinTimer  = null;
+  _gsAlive = d.aliveIds;
+  if (d.elimId) _gsEliminated.add(d.elimId);
+  if (!_gsEliminationOrder.includes(d.elimId)) _gsEliminationOrder.push(d.elimId);
+
+  // Highlight all claimed spots with player names
+  if (d.claimedMap) {
+    Object.entries(d.claimedMap).forEach(([pid, sid]) => {
+      const el = document.getElementById('gsspot-' + sid);
+      if (!el) return;
+      el.classList.add('claimed');
+      const existing = el.querySelector('.gs-spot-name');
+      const p = ST.players.find(p => p.id === pid);
+      if (existing) existing.textContent = p ? p.name : '?';
+      else {
+        const nm = document.createElement('div');
+        nm.className = 'gs-spot-name';
+        nm.textContent = p ? p.name : '?';
+        el.appendChild(nm);
+      }
+    });
+  }
+
+  renderGsPlayerRow(d.elimId);
+
+  // Show elim banner
+  const banner = document.getElementById('gsElimBanner');
+  const nameEl = document.getElementById('gsElimName');
+  const subEl  = document.getElementById('gsElimSub');
+  if (banner && nameEl) {
+    nameEl.textContent = d.elimName || '?';
+    const isMe = d.elimId === ST.myId;
+    if (subEl) subEl.textContent = isMe ? '😬 You missed a golden spot!' : 'missed a golden spot!';
+    banner.style.display = 'flex';
+
+    setTimeout(() => { banner.style.display = 'none'; }, 2600);
+  }
+
+  // Spectators (already eliminated, in this round or earlier) see "Spectator";
+  // remaining players see the claim prompt reset for the next round.
+  gsSetClaimLabel('🪙 Claim your spot');
+}
+
+// ── CLIENT: render player status row ──────────────────────────────────
+function renderGsPlayerRow(activeElimId) {
+  const row = document.getElementById('gsPlayerRow');
+  if (!row) return;
+  const colors = ['#6C3BE8','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+  row.innerHTML = ST.players.map(p => {
+    const bg = colors[p.color % colors.length];
+    const isOut = _gsEliminated.has(p.id) || p.id === activeElimId;
+    const avInner = p.avatar
+      ? `<img src="${p.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-size:17px;font-weight:800;border-radius:50%">${p.name[0].toUpperCase()}</div>`;
+    const ringCls = isOut ? 'gs-pcard-av out-ring' : 'gs-pcard-av';
+    const badgeHtml = isOut
+      ? `<div class="gs-pcard-badge out-b">OUT</div>`
+      : `<div class="gs-pcard-badge alive-b">ALIVE</div>`;
+    return `<div class="gs-pcard${isOut?' out':''}">
+      <div class="${ringCls}">${avInner}</div>
+      <div class="gs-pcard-name">${p.name}</div>
+      ${badgeHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── CLIENT: apply gs_end broadcast ────────────────────────────────────
+function applyGsEnd(d) {
+  _gsDone = true;
+  clearTimeout(_gsClaimTimer); _gsClaimTimer = null;
+  clearTimeout(_gsSpinTimer);  _gsSpinTimer  = null;
+  if (d.scores) Object.assign(ST.scores, d.scores);
+  if (d.elimOrder) _gsEliminationOrder = d.elimOrder;
+  showLoadingThenFinal(ST.scores);
+}
+
+// ── CLIENT: Golden Spot final screen ──────────────────────────────────
+function showGoldenSpotFinal(scores) {
+  show('gs-final');
+  if (scores) Object.assign(ST.scores, scores);
+  startFinalVote('gs');
+
+  const colors = ['#6C3BE8','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+
+  function avInner(p, size) {
+    const bg = colors[p.color % colors.length];
+    if (p.avatar) return `<img src="${p.avatar}" alt="" style="border-radius:50%;width:100%;height:100%;object-fit:cover">`;
+    return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-size:${size}px;font-weight:800;border-radius:50%">${p.name[0].toUpperCase()}</div>`;
+  }
+
+  // The winner is whoever is NOT in the elimination order (last one standing)
+  const elimSet = new Set(_gsEliminationOrder);
+  const winner = ST.players.find(p => !elimSet.has(p.id)) || ST.players[0];
+  const isYou = winner && winner.id === ST.myId;
+  const meName = ST.players.find(p => p.id === ST.myId)?.name || 'You';
+
+  const roundsScoring = !!(ST._gsRoundsScoring);
+  const totalPlayers = ST.players.length;
+  // Compute my pts for the personalized banner
+  let myPts = 0;
+  if (roundsScoring) {
+    if (isYou) {
+      myPts = totalPlayers * 10;
+    } else {
+      const myElimIdx = _gsEliminationOrder.indexOf(ST.myId);
+      myPts = myElimIdx >= 0 ? (myElimIdx + 1) * 10 : 0;
+    }
+  }
+
+  let contentHTML;
+  if (isYou) {
+    // ── WINNER: personalized "you survived" screen ──
+    contentHTML = `
+      <div class="gsf-role-banner gsf-role-win">
+        <div class="gsf-role-icon">✅</div>
+        <div class="gsf-role-title">YOU SURVIVED!</div>
+        <div class="gsf-role-sub">Last one standing — well played 🏆${roundsScoring ? `<br><span style="color:#F5B942;font-size:18px;font-weight:800">+${myPts} pts</span>` : ''}</div>
+      </div>
+      <div class="gs-winner-ring" style="margin-top:6px">${avInner(winner, 40)}</div>
+      <div class="gs-winner-name">${winner.name}</div>`;
+  } else {
+    // ── EVERYONE ELSE: personalized "you were eliminated" screen ──
+    contentHTML = `
+      <div class="gsf-role-banner gsf-role-lose">
+        <div class="gsf-role-icon">💀</div>
+        <div class="gsf-role-title">${meName}</div>
+        <div class="gsf-role-sub">missed a golden spot!${roundsScoring ? `<br><span style="color:#A0A0C0;font-size:16px;font-weight:700">+${myPts} pts</span>` : ''}</div>
+      </div>
+      ${winner ? `
+      <div class="gs-winner-crown" style="font-size:32px;margin-top:4px">🪙</div>
+      <div class="gs-winner-ring" style="width:64px;height:64px">${avInner(winner, 24)}</div>
+      <div class="gs-winner-name" style="font-size:16px">${winner.name}</div>
+      <div class="gs-winner-sub">🏆 LAST ONE STANDING</div>` : ''}`;
+  }
+  document.getElementById('gsFinalContent').innerHTML = contentHTML;
+
+  // Build elim list in reverse order (last eliminated = rank 2, first eliminated = last rank)
+  const elimList = [..._gsEliminationOrder].reverse();
+  const totalPlayers = ST.players.length;
+  const roundsScoring = !!(ST._gsRoundsScoring);
+
+  // Winner row first (rank #1)
+  const winnerPts = roundsScoring ? totalPlayers * 10 : 100;
+  const winnerRow = winner ? `<div class="gs-elim-row" style="animation-delay:0ms;border:1px solid #F5B94240;background:linear-gradient(135deg,#F5B94210,#D9770610)">
+    <div class="gs-elim-rank" style="color:#F5B942">#1</div>
+    <div class="gs-elim-av">${avInner(winner, 14)}</div>
+    <div class="gs-elim-info">
+      <div class="gs-elim-name" style="color:#F5B942">${winner.name}${winner.id === ST.myId ? ' <span style="color:var(--text3);font-size:10px">(you)</span>' : ''}</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#F5B942">${roundsScoring?'+'+winnerPts+'pts':'🏆'}</div>
+  </div>` : '';
+
+  const elimHTML = elimList.map((pid, i) => {
+    const p = ST.players.find(p => p.id === pid);
+    if (!p) return '';
+    const rank = i + 2;
+    // In rounds scoring: elimList[0] = last-eliminated (rank 2 = highest among losers),
+    // elimList[last] = first-eliminated (lowest rank). Points: rank N-1 down to 1.
+    // _gsEliminationOrder[0] = first out (10pts), [last] = last loser before winner
+    const elimOrderIdx = _gsEliminationOrder.indexOf(pid); // 0 = first out
+    const pts = roundsScoring ? (elimOrderIdx + 1) * 10 : null;
+    return `<div class="gs-elim-row" style="animation-delay:${(i+1) * 80}ms">
+      <div class="gs-elim-rank">#${rank}</div>
+      <div class="gs-elim-av">${avInner(p, 14)}</div>
+      <div class="gs-elim-info">
+        <div class="gs-elim-name">${p.name}${p.id === ST.myId ? ' <span style="color:var(--text3);font-size:10px">(you)</span>' : ''}</div>
+      </div>
+      ${roundsScoring ? `<div style="font-size:12px;font-weight:700;color:var(--text2)">+${pts}pts</div>` : '<div class="gs-elim-skull">💀</div>'}
+    </div>`;
+  }).join('');
+  document.getElementById('gsFinalElimList').innerHTML = (winnerRow + elimHTML) || '';
+
+  // Spark burst — celebration only makes sense on the winner's own screen
+  if (isYou) setTimeout(() => {
+    const wrap = document.getElementById('gsFinalContent');
+    if (!wrap) return;
+    const colors2 = ['#F5B942','#FBBF24','#FCD34D','#8B5CF6','#34D399','#fff','#F97316'];
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      const dist  = 60 + Math.random() * 80;
+      const tx = Math.round(Math.cos(angle) * dist) + 'px';
+      const ty = Math.round(Math.sin(angle) * dist - 40) + 'px';
+      const sp = document.createElement('div');
+      sp.className = 'tt-spark'; // reuse existing spark CSS
+      sp.style.cssText = `--tx:${tx};--ty:${ty};background:${colors2[i % colors2.length]};animation-delay:${Math.random() * 180}ms;animation-duration:${900 + Math.random() * 400}ms;position:absolute`;
+      wrap.appendChild(sp);
+    }
+  }, 700);
+}
+
+// ── Player departure: if mid-game, host checks if only 1 alive ─────────
+function gsPlayerDeparted(id) {
+  if (!ST.isHost || _gsDone || ST.mode !== 'goldenspot') return;
+  if (!_gsEliminated.has(id)) {
+    _gsEliminated.add(id);
+    _gsEliminationOrder.push(id);
+  }
+  if (_gsAlive) _gsAlive = _gsAlive.filter(aid => aid !== id);
+  const alive = (_gsAlive || []).filter(aid => !_gsEliminated.has(aid));
+  if (alive.length <= 1) gsHostEnd(alive[0] || null);
 }
 
 function initTapTrap(){
@@ -5144,7 +6655,7 @@ function pickTapTrap(v){
   });
   const res={type:'tt_result',id:ST.myId,correct,chosenVal:v};
   if(ST.isHost||ST.isSolo)ttProcessResult(res);
-  else send('cp-host-'+ST.roomCode,res);
+  else send(ST.hostPeerId,res);
 }
 
 // HOST ONLY: authoritative resolution of a turn — updates hearts, tells everyone, advances.
@@ -5384,7 +6895,7 @@ function finishTapRound(){
     checkAllResults();
   } else {
     ST.roundResults[ST.myId]={time:_tapHit,name:mp?.name||'?'};
-    send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:_tapHit,name:mp?.name||'?',tapPts:pts});
+    send(ST.hostPeerId,{type:'result',id:ST.myId,time:_tapHit,name:mp?.name||'?',tapPts:pts});
   }
 }
 
@@ -5646,7 +7157,7 @@ function finishOrderRound(timedOut){
     checkAllResults();
   } else {
     ST.roundResults[ST.myId]={time:elapsed,name:mp?.name||'?',orderPts:pts,wrong:_opWrong};
-    send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:elapsed,name:mp?.name||'?',orderPts:pts,wrong:_opWrong});
+    send(ST.hostPeerId,{type:'result',id:ST.myId,time:elapsed,name:mp?.name||'?',orderPts:pts,wrong:_opWrong});
   }
 }
 
@@ -5858,7 +7369,7 @@ function finishClockRound(elapsed,correct,pts,typedLabel){
     checkAllResults();
   } else {
     ST.roundResults[ST.myId]={time:elapsed,name:mp?.name||'?',clockPts:pts,clockCorrect:correct,clockTyped:typedLabel};
-    send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:elapsed,name:mp?.name||'?',clockPts:pts,clockCorrect:correct,clockTyped:typedLabel});
+    send(ST.hostPeerId,{type:'result',id:ST.myId,time:elapsed,name:mp?.name||'?',clockPts:pts,clockCorrect:correct,clockTyped:typedLabel});
   }
 }
 
@@ -6468,7 +7979,7 @@ function _cvRunTimer(startTs,timeLimit){
         status:document.getElementById('cvStatus')?document.getElementById('cvStatus').textContent:'',
         timerPct:pct};
       if(ST.isHost)broadcast(spectatePayload);
-      else send('cp-host-'+ST.roomCode,{...spectatePayload,_relay:true});
+      else send(ST.hostPeerId,{...spectatePayload,_relay:true});
     }
   },100);
 }
@@ -6509,7 +8020,7 @@ function finishCVRound(elapsed,success){
     checkAllResults();
   } else {
     ST.roundResults[ST.myId]=payload;
-    send('cp-host-'+ST.roomCode,{type:'result',...payload});
+    send(ST.hostPeerId,{type:'result',...payload});
   }
 }
 
@@ -6530,6 +8041,8 @@ function startRound(){
   if(ST.players.length<2){showToast('Need at least 2 players!');return;}
   console.log('[DEBUG startRound] ST.players at round start:',JSON.parse(JSON.stringify(ST.players)));
   console.log('[DEBUG startRound] player count:',ST.players.length,'mode:',ST.mode);
+  // Re-seed watchdog with the current roster so any new guests are tracked
+  if(ST.isHost)startWatchdog();
   const cfg=getModeSettings();
   const tgt=ST.mode==='imposter'
     ? parseFloat((2+Math.random()*6).toFixed(1))
@@ -6577,6 +8090,21 @@ function startRound(){
     ttDiff=cfg.s_ttDiff||'medium';
     ttHearts=parseInt(cfg.s_ttHearts)||3;
     ST.ttTime=ttTime;ST.ttDiff=ttDiff;ST.ttHearts=ttHearts;
+  }
+  // Golden Spot: host stores spin/claim times for broadcast.
+  let gsNumTraps=2,gsTotalHoles=6,gsRoundsScoring=false;
+  if(ST.mode==='goldenspot'){
+    const _pc=ST.players.length;
+    gsTotalHoles=Math.max(_pc,parseInt(cfg.s_gsTotalHoles)||6);
+    const _numGolden=_pc-1;
+    const _maxTraps=gsTotalHoles-_numGolden;
+    gsNumTraps=Math.max(1,Math.min(parseInt(cfg.s_gsNumTraps)||2,_maxTraps));
+    gsRoundsScoring=!!(cfg.s_gsRoundsScoring);
+    // emptyHoles is derived at round-start from alive count; store totalHoles & traps only
+    ST._gsTotalHoles=gsTotalHoles;ST._gsNumTraps=gsNumTraps;ST._gsRoundsScoring=gsRoundsScoring;
+    // Keep fixed spin/claim timings
+    ST._gsSpinTime=3;ST._gsClaimTime=4;
+    _gsEliminated=new Set();_gsAlive=null;_gsDone=false;
   }
   // Cipher Vault: host generates the cipher + code so all players decode the same puzzle.
   if(ST.mode==='ciphervault'){
@@ -6627,7 +8155,8 @@ function startRound(){
         orderNums:orderNums,opTimeLimit,opUseTimer,
         clockTime,clockSeconds,clockFormat,clockPreview,
         ttTime,ttDiff,ttHearts,
-        cvCipher,cvCode,cvTimeLimit,cvFinalDuel});
+        cvCipher,cvCode,cvTimeLimit,cvFinalDuel,
+        gsNumTraps,gsTotalHoles,gsRoundsScoring});
     }
   });
   // ── Save the canonical startRound payload so reconnecting guests can be replayed ──
@@ -6636,7 +8165,8 @@ function startRound(){
     tapCount:ST.tapCount, impTurnOrder:ST.impTurnOrder, impTurnIdx:0,
     flashNum:flashNum, flashTimer:flashTimer, orderNums:orderNums,
     opTimeLimit, opUseTimer, clockTime, clockSeconds, clockFormat, clockPreview,
-    ttTime, ttDiff, ttHearts, cvCipher, cvCode, cvTimeLimit, cvFinalDuel
+    ttTime, ttDiff, ttHearts, cvCipher, cvCode, cvTimeLimit, cvFinalDuel,
+    gsNumTraps, gsTotalHoles, gsRoundsScoring
   });
   if(ST.mode==='imposter'){
     // Host: go to role then wait for turn signal
@@ -6683,7 +8213,7 @@ function goToHold(){
   // round WAITS for us to finish holding instead of the watchdog skipping us.
   if(!ST.isSolo && ST.mode!=='imposter'){
     if(ST.isHost){ST.activeHolders=ST.activeHolders||{};ST.activeHolders[ST.myId]=true;}
-    else send('cp-host-'+ST.roomCode,{type:'holdStart',id:ST.myId});
+    else send(ST.hostPeerId,{type:'holdStart',id:ST.myId});
   }
 }
 
@@ -6700,7 +8230,7 @@ function startHold(e){
   if(ST.mode==='imposter')broadcast({type:'imp_beep_start',id:ST.myId});
   if(!ST.isSolo&&ST.mode!=='imposter'){
     if(ST.isHost){ST.activeHolders=ST.activeHolders||{};ST.activeHolders[ST.myId]=true;}
-    else send('cp-host-'+ST.roomCode,{type:'holdStart',id:ST.myId});
+    else send(ST.hostPeerId,{type:'holdStart',id:ST.myId});
   }
   // No special logic triggers at the target time — the timer runs silently
   // in the background. The only thing that records the hold time is releasing
@@ -6734,7 +8264,7 @@ function stopHold(e){
     if(ST.isHost){
       impMaybeAdvance(ST.myId);
     } else {
-      send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:ST.myTime,name:mp.name,_from:ST.myId,_to:'cp-host-'+ST.roomCode});
+      send(ST.hostPeerId,{type:'result',id:ST.myId,time:ST.myTime,name:mp.name,_from:ST.myId,_to:ST.hostPeerId});
     }
   } else {
     document.getElementById('waitRow').style.display='flex';
@@ -6746,8 +8276,8 @@ function stopHold(e){
       renderHoldSideList();
       checkAllResults();
     } else {
-      console.log('[DEBUG stopHold] guest sending result to host:','cp-host-'+ST.roomCode);
-      send('cp-host-'+ST.roomCode,{type:'result',id:ST.myId,time:ST.myTime,name:mp.name});
+      console.log('[DEBUG stopHold] guest sending result to host:',ST.hostPeerId);
+      send(ST.hostPeerId,{type:'result',id:ST.myId,time:ST.myTime,name:mp.name});
       ST.roundResults[ST.myId]={time:ST.myTime,name:mp.name};
       renderHoldSideList();
     }
@@ -7171,7 +8701,7 @@ function toggleVote(vid){
     if(sb){sb.style.pointerEvents='';sb.style.opacity='';}
     // Tell host this player has un-voted
     if(ST.isHost){delete ST.votes[ST.myId];broadcastVoteProgress();}
-    else send('cp-host-'+ST.roomCode,{type:'unvote'});
+    else send(ST.hostPeerId,{type:'unvote'});
   } else {
     // Different (or first) target tapped → switch vote to this target
     if(window._pendingVote){
@@ -7195,7 +8725,7 @@ function toggleVote(vid){
     }
     // Submit this vote to the host immediately (replaces any previous)
     if(ST.isHost){ST.votes[ST.myId]=vid;broadcastVoteProgress();checkAllVotes();}
-    else send('cp-host-'+ST.roomCode,{type:'vote',votedFor:vid});
+    else send(ST.hostPeerId,{type:'vote',votedFor:vid});
   }
 }
 
@@ -7583,6 +9113,8 @@ function _origShowFinal(scores){
   if(ST.mode==='imposter'){showImposterFinal(scores);return;}
   // Tap Trap uses a survival-based dramatic reveal instead of a points podium.
   if(ST.mode==='taptrap'){showTapTrapFinal(scores);return;}
+  // Golden Spot uses its own survivor final screen.
+  if(ST.mode==='goldenspot'){showGoldenSpotFinal(scores);return;}
   show('final');
   const sorted=ST.players.map(p=>({...p,score:scores[p.id]||0})).sort((a,b)=>b.score-a.score);
   const podCount=Math.min(sorted.length,9);
@@ -7772,7 +9304,7 @@ function exitToMenu(){
   // remove us from the roster and update the vote-play-again threshold.
   const myName=ST.myName||'A player';
   if(ST.roomCode&&ST.myId){
-    netSend({type:'leave',id:ST.myId,name:myName,_from:ST.myId,_to:'cp-host-'+ST.roomCode});
+    netSend({type:'leave',id:ST.myId,name:myName,_from:ST.myId,_to:ST.hostPeerId});
     netSend({type:'player_left',name:myName,_from:ST.myId});
   }
   _fullReset();
@@ -7883,9 +9415,11 @@ function confirmMidLeave(){
 }
 function _doLeave(){
   const myName=ST.myName||'A player';
+  stopHeartbeat(); // stop pinging before we disconnect
+  stopWatchdog();
   if(!ST.isHost&&ST.roomCode&&ST.myId){
     // Send leave to host so they remove us from roster
-    netSend({type:'leave',id:ST.myId,name:myName,_from:ST.myId,_to:'cp-host-'+ST.roomCode});
+    netSend({type:'leave',id:ST.myId,name:myName,_from:ST.myId,_to:ST.hostPeerId});
     // Also broadcast player_left directly so ALL players see notification immediately
     netSend({type:'player_left',name:myName,_from:ST.myId});
   } else if(ST.isHost&&ST.roomCode){
@@ -7894,6 +9428,23 @@ function _doLeave(){
   _fullReset();
   setTimeout(()=>{destroyPeer();document.getElementById('navBack')?.style&&(document.getElementById('navBack').style.display='');navHistory=['home'];navFwdStack=[];updateNavBtns();_showScreen('home');switchTab('pub');},600);
 }
+
+// Best-effort tab-close: fire a leave message synchronously so the host removes
+// us from the roster faster than the 12 s watchdog would. Browsers allow
+// synchronous XHR or sendBeacon in beforeunload but not promises — use
+// Supabase's sendBeacon-compatible realtime message if available; otherwise the
+// watchdog covers us within PING_TIMEOUT ms anyway.
+window.addEventListener('beforeunload',()=>{
+  if(!ST.roomCode||!ST.myId||ST.isSolo)return;
+  stopHeartbeat();
+  const myName=ST.myName||'A player';
+  if(!ST.isHost){
+    try{netSend({type:'leave',id:ST.myId,name:myName,_from:ST.myId,_to:ST.hostPeerId});}catch(e){}
+    try{netSend({type:'player_left',name:myName,_from:ST.myId});}catch(e){}
+  } else {
+    try{broadcast({type:'host_left',_from:ST.myId});}catch(e){}
+  }
+});
 function _fullReset(){
   // Clear ALL game state so no cookies carry over
   ST.roundResults={};ST.votes={};ST.voteSubmitted=false;ST.impVoteChance=1;
@@ -8580,7 +10131,7 @@ function spinRoulette(){
   let delay = 60;
 
   function doTick(){
-    const m = MODES[Math.floor(Math.random() * MODES.length)];
+    const m = SELECTABLE_MODES[Math.floor(Math.random() * SELECTABLE_MODES.length)];
     document.getElementById('rouletteIcon').textContent = m.icon;
     document.getElementById('rouletteName').textContent = m.name;
     document.getElementById('rouletteTag').textContent = m.tag;
@@ -8909,7 +10460,15 @@ function attemptSessionRestore() {
 
   if (sess.isHost) {
     _showReconnectBanner('Reconnecting as host…');
-    ST.myId = 'cp-host-' + sess.roomCode;
+    // IMPORTANT: don't force myId back into the fixed 'cp-host-'+roomCode
+    // format here. That format only belongs to whoever was the ORIGINAL
+    // host. If host was transferred mid-session to a promoted guest, their
+    // real id is 'cp-peer-...' — forcing it to 'cp-host-'+roomCode would
+    // make every other client's stored hostPeerId (which points at the real
+    // promoted id) stop matching, silently dropping all their sent messages
+    // (results, holdStart, votes, etc.) after this reconnect.
+    ST.myId = sess.myId || ('cp-host-' + sess.roomCode);
+    ST.hostPeerId = ST.myId;
 
     // ── Restore full player list (not just ourselves) ──
     ST.players = (sess.players && sess.players.length)
@@ -8980,6 +10539,7 @@ function attemptSessionRestore() {
     }, () => {
       setConnStatus('ok');
       const hid = 'cp-host-' + sess.roomCode;
+      ST.hostPeerId = hid; // initial value — updated if host has been transferred
       netSend({
         type:        'state_request',
         _from:       ST.myId,
@@ -9651,5 +11211,31 @@ function initBgCanvas(){
   if(reduceMotion){draw();}else{loop();}
 }
 </script>
+<!-- ── ROOM CHAT — lives OUTSIDE #app so position:fixed + z-index work from the root stacking context ── -->
+<style>
+  @keyframes chatPulse{0%,100%{opacity:1}50%{opacity:.4}}
+  #chatMessages::-webkit-scrollbar{width:3px}
+  #chatMessages::-webkit-scrollbar-track{background:transparent}
+  #chatMessages::-webkit-scrollbar-thumb{background:#6C3BE860;border-radius:3px}
+</style>
+<div id="lobbyChat" style="position:fixed;bottom:16px;left:16px;width:300px;z-index:9100;display:none;flex-direction:column;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px #0008;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,#6C3BE8cc,#0EA5E9cc)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:chatPulse 2s infinite"></div>
+      <span style="font-size:12px;font-weight:700;color:#fff;letter-spacing:.8px">ROOM CHAT</span>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+  </div>
+  <div id="chatMessages" style="height:200px;overflow-y:auto;padding:12px 10px 8px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;background:rgba(10,10,30,0.85)"></div>
+  <div style="display:flex;align-items:center;background:rgba(10,10,30,0.95);border-top:1px solid rgba(255,255,255,0.07);padding:8px 10px;gap:8px">
+    <input id="chatInput" placeholder="Say something…" maxlength="120" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:8px 14px;font-size:13px;color:#fff;font-family:var(--font);outline:none;transition:.2s" onfocus="this.style.borderColor='#6C3BE8'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#6C3BE8,#0EA5E9);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px #6C3BE866;transition:.15s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">↑</button>
+  </div>
+</div>
+<button id="chatBubble" onclick="toggleChat()" style="position:fixed;bottom:16px;left:16px;z-index:9101;display:none;align-items:center;gap:8px;padding:10px 18px 10px 14px;border-radius:24px;background:linear-gradient(135deg,#6C3BE8,#0EA5E9);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px #6C3BE888;font-family:var(--font);transition:.2s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px #6C3BE8aa'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px #6C3BE888'">
+  <i class="ti ti-message-circle" style="font-size:18px"></i>
+  <span id="chatBubbleLabel">Room Chat</span>
+  <div id="chatUnreadBadge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:flex;align-items:center;justify-content:center;margin-left:2px"></div>
+</button>
 </body>
 </html>
