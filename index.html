@@ -6430,8 +6430,6 @@ function showGoldenSpotFinal(scores) {
 
   // Build elim list in reverse order (last eliminated = rank 2, first eliminated = last rank)
   const elimList = [..._gsEliminationOrder].reverse();
-  const totalPlayers = ST.players.length;
-  const roundsScoring = !!(ST._gsRoundsScoring);
 
   // Winner row first (rank #1)
   const winnerPts = roundsScoring ? totalPlayers * 10 : 100;
