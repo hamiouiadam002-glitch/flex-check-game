@@ -463,10 +463,88 @@ body.light .btn{border-color:var(--border2);}
 .cv-code-display{font-size:32px;font-weight:800;letter-spacing:8px;text-align:center;color:var(--text);margin:8px 0 4px;user-select:none}
 .cv-entry-display{font-size:28px;font-weight:700;letter-spacing:6px;font-family:monospace;text-align:center;min-height:42px;color:var(--cg);padding:6px 16px;background:var(--dark3);border-radius:10px;border:2px solid var(--border2);margin-bottom:10px}
 .cv-entry-display.wrong{border-color:var(--cr);color:var(--cr)}
-.cv-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto}
-.cv-key{padding:14px 0;border-radius:12px;border:1.5px solid var(--border2);background:var(--dark3);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;transition:.1s;font-family:var(--font);user-select:none;-webkit-user-select:none}
-.cv-key:active{transform:scale(.93);background:var(--dark4)}
-.cv-key-del{font-size:15px}
+.cv-keypad{display:none}
+/* ── 3-D Drum Rollers (10-face barrel, 0-9) ── */
+.cv-tumblers{display:flex;gap:12px;justify-content:center;align-items:flex-end;margin:0 auto 14px;padding:4px 0}
+.cv-tumbler-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.cv-tumbler-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+/* The viewport window for the drum */
+.cv-tumbler{
+  width:72px;height:96px;
+  perspective:420px;
+  cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  /* Gradient masks top & bottom to fade peeking faces */
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 22%,black 78%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,black 22%,black 78%,transparent 100%);
+}
+/* Glow border around active drum */
+.cv-tumbler-ring{
+  position:absolute;inset:0;border-radius:14px;pointer-events:none;z-index:20;
+  border:2px solid var(--border2);
+  box-shadow:inset 0 0 10px #0004;
+  transition:border-color .2s,box-shadow .2s;
+}
+.cv-tumbler.active .cv-tumbler-ring{
+  border-color:var(--c1);
+  box-shadow:0 0 0 2px var(--c1)55,inset 0 0 8px #0003,0 0 18px var(--c1)33;
+}
+.cv-tumbler.inactive .cv-tumbler-ring{opacity:.4}
+/* Horizontal selection line across center */
+.cv-tumbler-ring::before,.cv-tumbler-ring::after{
+  content:'';position:absolute;left:4px;right:4px;height:1.5px;
+  background:linear-gradient(90deg,transparent,var(--c1)70,transparent);
+  pointer-events:none;
+}
+.cv-tumbler-ring::before{top:calc(50% - 24px)}
+.cv-tumbler-ring::after{bottom:calc(50% - 24px)}
+/* The spinning drum itself */
+.cv-tumbler-inner{
+  width:100%;height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition:transform .35s cubic-bezier(.22,.68,0,1.2);
+}
+.cv-tumbler-inner.kick{
+  transition:transform .38s cubic-bezier(.22,.68,0,1.25);
+}
+/* Each face of the 10-sided barrel */
+/* radius = height/2 / tan(π/10) ≈ 48 / 0.3249 ≈ 148px — but we use 78px for tighter feel */
+.cv-drum-face{
+  position:absolute;
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:44px;font-weight:900;
+  backface-visibility:hidden;
+  border-radius:10px;
+  /* each face rotated and pushed out */
+  /* translateZ set inline per face via JS */
+}
+/* face color varies by position to give depth illusion */
+.cv-drum-face[data-pos="0"]{background:linear-gradient(165deg,#232057,#2D2A6E);color:#fff;}
+.cv-drum-face[data-pos="1"]{background:linear-gradient(165deg,#1c1a50,#26245f);color:#e8e4ff;}
+.cv-drum-face[data-pos="2"]{background:linear-gradient(165deg,#18163e,#201d56);color:#cdc8f5;}
+.cv-drum-face[data-pos="3"]{background:linear-gradient(165deg,#141230,#1a184a);color:#b0aae0;}
+.cv-drum-face[data-pos="4"]{background:linear-gradient(165deg,#100e24,#16143e);color:#8880c8;}
+.cv-drum-face[data-pos="5"]{background:linear-gradient(165deg,#0d0b1e,#131132);color:#6660b0;}
+.cv-drum-face[data-pos="6"]{background:linear-gradient(165deg,#100e24,#16143e);color:#8880c8;}
+.cv-drum-face[data-pos="7"]{background:linear-gradient(165deg,#141230,#1a184a);color:#b0aae0;}
+.cv-drum-face[data-pos="8"]{background:linear-gradient(165deg,#18163e,#201d56);color:#cdc8f5;}
+.cv-drum-face[data-pos="9"]{background:linear-gradient(165deg,#1c1a50,#26245f);color:#e8e4ff;}
+/* Tap ripple on active drum */
+@keyframes cvDrumPop{0%{transform:scale(1)}40%{transform:scale(.94)}100%{transform:scale(1)}}
+.cv-tumbler.pop{animation:cvDrumPop .18s ease-out}
+/* Filled slot tick mark */
+.cv-tumbler.filled .cv-tumbler-ring{border-color:#22C55E88;box-shadow:0 0 0 1.5px #22C55E44}
+/* Inactive dimming */
+.cv-tumbler.inactive{filter:brightness(.55)}
+.cv-tumbler-btns{display:flex;gap:6px;margin-top:4px}
+.cv-tumbler-action{padding:7px 14px;border-radius:9px;border:1.5px solid var(--border2);background:var(--dark3);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.12s;user-select:none}
+.cv-tumbler-action:active{transform:scale(.93);background:var(--dark4)}
+.cv-tumbler-submit{background:var(--c1)!important;border-color:var(--c1)!important;color:#fff!important;padding:7px 22px}
 .cv-timer-bar-wrap{height:6px;background:var(--dark4);border-radius:3px;overflow:hidden;margin-bottom:6px}
 .cv-timer-bar{height:100%;background:var(--cg);border-radius:3px;transition:width .2s linear}
 .cv-status{font-size:13px;text-align:center;color:var(--text2);min-height:18px}
@@ -2217,29 +2295,28 @@ body.light .btn{border-color:var(--border2);}
 
       <div id="cvCipherGrid" class="cv-cipher-grid"></div>
       <div style="font-size:13px;color:var(--text2);text-align:center">Decode the code below — enter the numbers on the keypad</div>
-      <div id="cvCodeDisplay" class="cv-code-display"></div>
+      <div id="cvCodeDisplay" class="cv-code-display" style="display:none"></div>
 
-      <!-- Status light + entry display row -->
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px">
-        <div id="cvStatusLight" style="width:14px;height:14px;border-radius:50%;background:#EF4444;box-shadow:0 0 8px #EF4444;flex-shrink:0;transition:background .3s,box-shadow .3s"></div>
-        <div id="cvEntryDisplay" class="cv-entry-display" style="margin-bottom:0">_ _ _ _</div>
-        <div style="width:14px;height:14px;border-radius:50%;background:#22C55E;box-shadow:0 0 8px #22C55E;flex-shrink:0;transition:background .3s,box-shadow .3s" id="cvStatusLightGreen"></div>
+      <!-- Status lights flanking the tumblers, entry display hidden but kept for logic -->
+      <div id="cvEntryDisplay" class="cv-entry-display" style="display:none">_ _ _ _</div>
+
+      <!-- Letter labels above tumblers + status lights -->
+      <div style="display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:4px">
+        <div id="cvStatusLight" style="width:14px;height:14px;border-radius:50%;background:#EF4444;box-shadow:0 0 8px #EF4444;flex-shrink:0;margin-bottom:6px;transition:background .3s,box-shadow .3s"></div>
+        <div id="cvTumblerLabels" style="display:flex;gap:8px;justify-content:center"></div>
+        <div style="width:14px;height:14px;border-radius:50%;background:#22C55E55;box-shadow:none;flex-shrink:0;margin-bottom:6px;transition:background .3s,box-shadow .3s" id="cvStatusLightGreen"></div>
       </div>
 
-      <div class="cv-keypad" id="cvKeypad">
-        <button class="cv-key" onclick="cvKey(1)">1</button>
-        <button class="cv-key" onclick="cvKey(2)">2</button>
-        <button class="cv-key" onclick="cvKey(3)">3</button>
-        <button class="cv-key" onclick="cvKey(4)">4</button>
-        <button class="cv-key" onclick="cvKey(5)">5</button>
-        <button class="cv-key" onclick="cvKey(6)">6</button>
-        <button class="cv-key" onclick="cvKey(7)">7</button>
-        <button class="cv-key" onclick="cvKey(8)">8</button>
-        <button class="cv-key" onclick="cvKey(9)">9</button>
-        <button class="cv-key cv-key-del" onclick="cvDel()" style="grid-column:1">⌫</button>
-        <button class="cv-key" onclick="cvKey(0)" style="grid-column:2">0</button>
-        <button class="cv-key" onclick="cvSubmit()" style="grid-column:3;background:var(--c1);border-color:var(--c1);color:#fff">✓</button>
+      <!-- 3-D Tumbler rollers — one per digit -->
+      <div class="cv-tumblers" id="cvTumblers">
+        <!-- rendered by initCVTumblers() -->
       </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:4px">
+        <button class="cv-tumbler-action" onclick="cvTumblerDel()">⌫ Back</button>
+        <button class="cv-tumbler-action cv-tumbler-submit" onclick="cvSubmit()">✓ Submit</button>
+      </div>
+      <!-- legacy keypad kept hidden -->
+      <div class="cv-keypad" id="cvKeypad" style="display:none"></div>
       <div id="cvStatus" class="cv-status"></div>
       <div class="waiting-row" id="cvWaitRow" style="display:none"><div class="w-dot"></div><span>Waiting for others...</span></div>
     </div>
@@ -3261,7 +3338,7 @@ function startSolo(){
 }
 function renderSoloModeGrid(){
   const grid=document.getElementById('soloModeGrid');if(!grid)return;
-  const soloModes=SELECTABLE_MODES.filter(m=>m.id!=='imposter'&&m.id!=='chain');
+  const soloModes=SELECTABLE_MODES.filter(m=>m.id!=='imposter'&&m.id!=='chain'&&m.id!=='goldenspot');
   grid.innerHTML=soloModes.map(m=>`<button class="mode-card-btn${_soloMode===m.id?' selected':''}" onclick="setSoloMode('${m.id}')" style="border-color:${_soloMode===m.id?m.color:''}">${m.new?'<span class="mode-card-new">NEW</span>':''}<span class="mode-card-icon">${m.icon}</span><span class="mode-card-name">${m.name}</span></button>`).join('');
   setSoloMode(_soloMode);
 }
@@ -7766,6 +7843,7 @@ function initCipherVault(){
   renderCVCipherGrid();
   renderCVCode();
   renderCVEntry();
+  initCVTumblers();  // build / reset the 3-D tumbler rollers for this round
   cvStartCountdown(startCVTimer);
 }
 
@@ -7856,6 +7934,17 @@ function renderCVCode(){
     if(isCurrent) return `<span class="cv-code-highlight">${l}</span>`;
     return `<span style="color:var(--text3)">${l}</span>`;
   }).join(' ');
+
+  // Sync tumbler letter labels with the same colour states
+  _cvCode.forEach((l, i) => {
+    const lbl = document.getElementById('cvTLabel' + i);
+    if(!lbl) return;
+    const decoded   = i < _cvEntry.length;
+    const isCurrent = i === _cvEntry.length;
+    lbl.textContent = l;
+    lbl.style.color = decoded ? 'var(--cg)' : isCurrent ? '#fff' : 'var(--text3)';
+    lbl.style.textShadow = isCurrent ? '0 0 8px #8B5CF6' : 'none';
+  });
 }
 
 function renderCVEntry(){
@@ -7878,13 +7967,152 @@ function cvKey(digit){
   renderCVCode();
   renderCVEntry();
   if(typeof playClick==='function')playClick();
-  // No auto-submit — player must press ✓ manually
+  // sync tumblers
+  _cvTumblerAdvanceTo(_cvEntry.length-1, digit);
+}
+
+// ── 10-FACE BARREL DRUM ENGINE ───────────────────────────────────────────────
+// Each slot is a 10-sided prism (decagonal drum) showing digits 0-9.
+// Faces are arranged around a horizontal axis; clicking spins forward one step.
+// The drum radius is computed so that each face fills the 96px viewport height.
+
+const CV_FACES = 10;                          // 10 digits: 0-9
+const CV_FACE_H = 96;                         // px — matches .cv-tumbler height
+const CV_ANGLE_STEP = 360 / CV_FACES;         // 36° per face
+// Radius so adjacent face edges are flush: r = (faceH/2) / tan(π/N)
+const CV_DRUM_R = Math.round((CV_FACE_H / 2) / Math.tan(Math.PI / CV_FACES)); // ≈148px
+
+let _cvTumblerRotations = [];  // accumulated X-rotation per slot (degrees)
+let _cvTumblerValues    = [];  // currently shown digit per slot
+
+function initCVTumblers(){
+  const len = _cvCode?.length || 4;
+  _cvTumblerRotations = Array(len).fill(0);
+  _cvTumblerValues    = Array(len).fill(0);  // face 0 is forward at rotation=0
+  const wrap = document.getElementById('cvTumblers');
+  if(!wrap) return;
+
+  // Render letter labels above tumblers
+  const labelsEl = document.getElementById('cvTumblerLabels');
+  if(labelsEl){
+    labelsEl.innerHTML = _cvCode.map((l, i) =>
+      `<div id="cvTLabel${i}" style="width:72px;text-align:center;font-size:20px;font-weight:800;color:var(--c1l);letter-spacing:1px">${l}</div>`
+    ).join('');
+  }
+
+  wrap.innerHTML = Array.from({length: len}, (_, i) => {
+    // Build 10 face divs. Face k shows digit k, rotated k*36° around X and pushed out by radius.
+    const faces = Array.from({length: CV_FACES}, (__, k) => {
+      const angleDeg = k * CV_ANGLE_STEP;
+      return `<div class="cv-drum-face" data-pos="${k}" data-digit="${k}"
+                   style="transform:rotateX(${-angleDeg}deg) translateZ(${CV_DRUM_R}px)">${k}</div>`;
+    }).join('');
+    return `
+    <div class="cv-tumbler-wrap">
+      <div class="cv-tumbler ${i===0?'active':'inactive'}" id="cvT${i}" onclick="cvTumblerTap(${i})">
+        <div class="cv-tumbler-ring" id="cvTRing${i}"></div>
+        <div class="cv-tumbler-inner" id="cvTI${i}">${faces}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Spin slot i so that digit newVal faces forward (rotateX such that face newVal is at 0°)
+function _cvTumblerSpin(i, newVal, reverse){
+  // The front face is the one whose natural angle = 0°.
+  // Face k sits at angle -k*36°. To bring face newVal to front we need total rotation = newVal*36°.
+  // We track cumulative rotation; always advance forward (negative X) by the shortest path that
+  // lands on the target digit, so the drum actually shows the requested number.
+  const inner = document.getElementById('cvTI' + i);
+  if(!inner) return;
+
+  const prev = _cvTumblerValues[i];
+  _cvTumblerValues[i] = newVal;
+
+  if(reverse){
+    // Going backwards: rotate negative
+    let steps = ((prev - newVal) + CV_FACES) % CV_FACES || 1;
+    _cvTumblerRotations[i] -= steps * CV_ANGLE_STEP;
+  } else {
+    // Going forward: rotate positive to bring face newVal to front
+    let steps = ((newVal - prev) + CV_FACES) % CV_FACES || 1;
+    _cvTumblerRotations[i] += steps * CV_ANGLE_STEP;
+  }
+
+  inner.classList.remove('kick');
+  void inner.offsetWidth; // reflow to restart animation
+  inner.classList.add('kick');
+  inner.style.transform = `rotateX(${_cvTumblerRotations[i]}deg)`;
+
+  // Pop effect on the outer wrapper
+  const outer = document.getElementById('cvT' + i);
+  if(outer){ outer.classList.remove('pop'); void outer.offsetWidth; outer.classList.add('pop'); }
+
+  inner.addEventListener('transitionend', () => inner.classList.remove('kick'), {once:true});
+}
+
+function cvTumblerTap(i){
+  if(_cvSubmitted) return;
+  const active = _cvEntry.length;
+  if(i > active) return; // can't skip ahead
+
+  if(i < active){
+    // Re-tap a filled slot — cycle 1→2→…→9→1 (never 0, cipher only uses 1-9)
+    const cur = _cvEntry[i];
+    const nxt = cur >= 9 ? 1 : cur + 1;
+    _cvEntry[i] = nxt;
+    _cvTumblerSpin(i, nxt, false);
+    renderCVCode();
+    renderCVEntry();
+    if(typeof playClick==='function') playClick();
+    return;
+  }
+
+  // First tap on fresh slot — start at 1
+  _cvEntry.push(1);
+  _cvTumblerSpin(i, 1, false);
+  _cvUpdateTumblerActive();
+  renderCVCode();
+  renderCVEntry();
+  if(typeof playClick==='function') playClick();
+}
+
+function _cvTumblerAdvanceTo(slot, digit){
+  // Called by keyboard / legacy cvKey path — sync without re-pushing
+  _cvTumblerSpin(slot, digit, false);
+  _cvUpdateTumblerActive();
+}
+
+function _cvUpdateTumblerActive(){
+  const active = _cvEntry.length;
+  const len = _cvCode?.length || 4;
+  for(let i = 0; i < len; i++){
+    const t = document.getElementById('cvT' + i);
+    if(!t) continue;
+    t.className = 'cv-tumbler ' + (i < active ? 'filled' : i === active ? 'active' : 'inactive');
+  }
+}
+
+function cvTumblerDel(){
+  if(_cvSubmitted) return;
+  if(_cvEntry.length === 0) return;
+  const i = _cvEntry.length - 1;
+  const prevDigit = (_cvTumblerValues[i] + 10 - 1) % 10;
+  _cvEntry.pop();
+  _cvTumblerSpin(i, prevDigit, true);
+  _cvUpdateTumblerActive();
+  renderCVCode();
+  renderCVEntry();
 }
 
 function cvDel(){
   if(_cvSubmitted)return;
   if(_cvEntry.length===0)return;
+  const i = _cvEntry.length - 1;
+  const prevDigit = (_cvTumblerValues[i] + CV_FACES - 1) % CV_FACES;
   _cvEntry.pop();
+  _cvTumblerSpin(i, prevDigit, true);
+  _cvUpdateTumblerActive();
   renderCVCode();
   renderCVEntry();
 }
@@ -7892,14 +8120,25 @@ function cvDel(){
 function cvSubmit(){
   if(_cvSubmitted)return;
   const correct=cvCorrectAnswer(_cvCode,_cvCipher);
-  const isCorrect=_cvEntry.every((d,i)=>d===correct[i])&&_cvEntry.length===correct.length;
+  if(_cvEntry.length < correct.length) return;
+  const isCorrect = _cvEntry.every((d,i) => Number(d) === Number(correct[i]));
   if(!isCorrect){
-    // Wrong entry — flash red and clear
-    const el=document.getElementById('cvEntryDisplay');
-    if(el){el.className='cv-entry-display wrong';setTimeout(()=>{el.className='cv-entry-display';},400);}
+    // Wrong entry — flash tumbler labels red, reset everything
+    const len = _cvCode.length;
+    for(let i=0;i<len;i++){
+      const lbl=document.getElementById('cvTLabel'+i);
+      if(lbl){lbl.style.color='#EF4444';lbl.style.textShadow='0 0 8px #EF4444';}
+      // spin each filled tumbler back to 0
+      if(i<_cvEntry.length) _cvTumblerSpin(i, 0, false);
+    }
+    setTimeout(()=>{
+      renderCVCode(); // restores label colours
+    },400);
     if(typeof playLose==='function')playLose();
     _cvEntry=[];
-    renderCVCode();
+    _cvTumblerRotations=Array(len).fill(0);
+    _cvTumblerValues=Array(len).fill(0);
+    _cvUpdateTumblerActive();
     renderCVEntry();
     return;
   }
