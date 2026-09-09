@@ -530,7 +530,7 @@ body.light .btn{border-color:var(--border2);}
 .op-input-countdown.pulse{animation:flashPulse 1s ease-in-out;}
 /* Tap Grid */
 .tap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:360px;margin:0 auto;width:100%}
-.tap-cell{aspect-ratio:1;border-radius:16px;border:2px solid var(--border2);background:var(--dark3);cursor:pointer;transition:.08s;display:flex;align-items:center;justify-content:center;font-size:28px;user-select:none;-webkit-user-select:none;min-height:90px}
+.tap-cell{aspect-ratio:1;border-radius:16px;border:2px solid var(--border2);background:var(--dark3);cursor:pointer;transition:background .06s,transform .06s;display:flex;align-items:center;justify-content:center;font-size:28px;user-select:none;-webkit-user-select:none;min-height:90px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .tap-cell.lit{background:var(--c1);border-color:var(--c1l)}
 .tap-cell.hit{background:var(--cg);border-color:var(--cgl);transform:scale(.93)}
 .tap-cell.miss{background:var(--cr);border-color:var(--cr)}
@@ -538,7 +538,7 @@ body.light .btn{border-color:var(--border2);}
 .tap-timer-fill{height:100%;background:var(--c1l);border-radius:3px;transition:width .08s linear}
 /* Order Pack */
 .op-board{position:relative;width:100%;max-width:360px;aspect-ratio:1/1;height:auto;margin:0 auto;background:var(--dark3);border:2px solid var(--border2);border-radius:16px;overflow:hidden}
-.op-num{position:absolute;display:flex;align-items:center;justify-content:center;background:var(--dark4);border:2px solid #8B5CF6;color:#fff;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s,background .12s,opacity .2s;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums;line-height:1;text-align:center;padding:2px}
+.op-num{position:absolute;display:flex;align-items:center;justify-content:center;background:var(--dark4);border:2px solid #8B5CF6;color:#fff;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .06s,background .08s,opacity .15s;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums;line-height:1;text-align:center;padding:2px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .op-num:active{transform:scale(.9)}
 .op-num.done{background:var(--cg);border-color:var(--cgl);opacity:.35;pointer-events:none}
 .op-num.wrong{background:var(--cr);border-color:var(--cr);animation:opShake .3s}
@@ -1126,15 +1126,23 @@ body.light .btn{border-color:var(--border2);}
 </style>
 </head>
 <script>
-// Prevent double-tap zoom on all touch devices
+// Prevent double-tap zoom WITHOUT blocking touch sensitivity
 (function(){
-  var lastTap=0;
-  document.addEventListener('touchend',function(e){
+  // Track last tap to detect double-tap
+  var lastTap=0, lastEl=null;
+  document.addEventListener('touchstart',function(e){
     var now=Date.now();
-    if(now-lastTap<350){e.preventDefault();}
+    var el=e.target;
+    // Only block double-tap zoom — same element tapped twice quickly
+    // BUT do NOT preventDefault here so touches still fire instantly
+    if(now-lastTap<350 && el===lastEl){
+      // This is a double-tap: prevent zoom by stopping the second touch
+      e.preventDefault();
+    }
     lastTap=now;
+    lastEl=el;
   },{passive:false});
-  // Also block gesturestart (pinch zoom) globally
+  // Block pinch/gesture zoom
   document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});
   document.addEventListener('gesturechange',function(e){e.preventDefault();},{passive:false});
   document.addEventListener('gestureend',function(e){e.preventDefault();},{passive:false});
@@ -7038,7 +7046,8 @@ function tapStartCountdown(cb){
 
 function renderTapGrid(){
   const g=document.getElementById('tapGrid');
-  g.innerHTML=Array.from({length:9},(_,i)=>`<div class="tap-cell" id="tc${i}" onclick="tapCell(${i})"></div>`).join('');
+  g.innerHTML=Array.from({length:9},(_,i)=>`<div class="tap-cell" id="tc${i}"
+    ontouchstart="tapCell(${i},event)" onclick="tapCell(${i},event)"></div>`).join('');
 }
 
 function startTapRound(){
@@ -7072,7 +7081,13 @@ function startTapRound(){
   },50);
 }
 
-function tapCell(i){
+function tapCell(i,e){
+  // Prevent the 300ms-delayed click from firing after a touchstart already handled it
+  if(e&&e.type==='touchstart'){e.preventDefault();e.stopPropagation();}
+  if(e&&e.type==='click'&&e.sourceCapabilities&&!e.sourceCapabilities.firesTouchEvents===false){return;}
+  // Use a flag to dedupe: touchstart sets it, click checks it
+  if(e&&e.type==='touchstart'){if(c&&c._touched)return;if(document.getElementById('tc'+i))document.getElementById('tc'+i)._touched=true;setTimeout(()=>{const el=document.getElementById('tc'+i);if(el)el._touched=false;},500);}
+  if(e&&e.type==='click'){const el=document.getElementById('tc'+i);if(el&&el._touched)return;}
   if(_tapDone)return;
   const c=document.getElementById('tc'+i);
   if(!c)return;
@@ -7251,7 +7266,7 @@ function renderOrderBoard(){
   board.innerHTML=_opNumbers.map((v,i)=>{
     const p=positions[i];
     const fontSize=size>=60?18:size>=50?16:14;
-    return `<div class="op-num" id="opn${i}" onclick="tapOrderNumber(${i})" style="left:${p.x}px;top:${p.y}px;width:${size}px;height:${size}px;font-size:${fontSize}px">${fmtOrderNum(v)}</div>`;
+    return `<div class="op-num" id="opn${i}" ontouchstart="tapOrderNumber(${i},event)" onclick="tapOrderNumber(${i},event)" style="left:${p.x}px;top:${p.y}px;width:${size}px;height:${size}px;font-size:${fontSize}px">${fmtOrderNum(v)}</div>`;
   }).join('');
 }
 
@@ -7320,7 +7335,9 @@ function timeUpOrderRound(){
   finishOrderRound(true);
 }
 
-function tapOrderNumber(i){
+function tapOrderNumber(i,e){
+  if(e&&e.type==='touchstart'){e.preventDefault();e.stopPropagation();const el=document.getElementById('opn'+i);if(el){if(el._touched)return;el._touched=true;setTimeout(()=>{el._touched=false;},500);}}
+  if(e&&e.type==='click'){const el=document.getElementById('opn'+i);if(el&&el._touched)return;}
   if(_opDone)return;
   if(!_opStartTime)return; // countdown not finished
   const cell=document.getElementById('opn'+i);
