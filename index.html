@@ -13902,12 +13902,36 @@ function initBgCanvas(){
 <!-- ── TV Power-On Flare Animation ── -->
 <canvas id="tvFlareCanvas" style="
   position:fixed;
-  top:46px; bottom:62px; left:34px; right:34px;
-  width:calc(100% - 68px); height:calc(100vh - 108px);
+  top:0; bottom:0; left:0; right:0;
+  width:100%; height:100%;
   z-index:99999;pointer-events:none;
   background:#000;
-  border-radius:4px;
+  border-radius:0;
 "></canvas>
+<script>
+// Adjust tvFlareCanvas insets based on whether TV bezel is active (desktop) or not (mobile)
+(function() {
+  function applyFlareCanvasInsets() {
+    const c = document.getElementById('tvFlareCanvas');
+    if (!c) return;
+    const isMobile = (('ontouchstart' in window || navigator.maxTouchPoints > 0) && (screen.width <= 768 || window.innerWidth <= 768))
+                  || (/Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) && !/iPad|Tablet/i.test(navigator.userAgent));
+    if (isMobile) {
+      c.style.top    = '0'; c.style.bottom = '0';
+      c.style.left   = '0'; c.style.right  = '0';
+      c.style.width  = '100%'; c.style.height = '100%';
+      c.style.borderRadius = '0';
+    } else {
+      c.style.top    = '46px'; c.style.bottom = '62px';
+      c.style.left   = '34px'; c.style.right  = '34px';
+      c.style.width  = 'calc(100% - 68px)'; c.style.height = 'calc(100vh - 108px)';
+      c.style.borderRadius = '4px';
+    }
+  }
+  applyFlareCanvasInsets();
+  window.addEventListener('resize', applyFlareCanvasInsets);
+})();
+</script>
 
 <script>
 (function() {
@@ -14061,173 +14085,6 @@ function initBgCanvas(){
     if(raw < 1) {
       requestAnimationFrame(draw);
     } else {
-      canvas.style.display = 'none';
-    }
-  }
-
-  requestAnimationFrame(draw);
-})();
-</script>
-
-  const TOTAL   = 1600; // ms total animation
-  const start   = performance.now();
-
-  function easeOut(t)    { return 1 - Math.pow(1 - t, 3); }
-  function easeInOut(t)  { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
-
-  function draw(now) {
-    const elapsed = now - start;
-    const raw     = Math.min(elapsed / TOTAL, 1);
-    const t       = raw; // 0 → 1
-
-    const W = canvas.width;
-    const H = canvas.height;
-    const cx = W / 2;
-    const cy = H / 2;
-
-    ctx.clearRect(0, 0, W, H);
-
-    // ── Phase logic ──────────────────────────────────
-    // 0.00–0.25  : black, then a tiny bright pinpoint appears
-    // 0.25–0.60  : horizontal line expands left+right, flare blooms
-    // 0.60–0.85  : flare fades, screen brightens to white
-    // 0.85–1.00  : white fades out → fully transparent → reveal game
-
-    // Overall background — starts black, stays black until near end
-    let bgAlpha;
-    if(t < 0.75)      bgAlpha = 1;
-    else if(t < 0.88) bgAlpha = 1 - easeOut((t - 0.75) / 0.13);
-    else              bgAlpha = 0;
-
-    if(bgAlpha > 0.001) {
-      ctx.fillStyle = `rgba(0,0,0,${bgAlpha})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    if(t < 0.12) {
-      // All black
-      if(raw < 1) requestAnimationFrame(draw);
-      return;
-    }
-
-    // ── Horizontal scan line ─────────────────────────
-    // grows from 0 width to full width
-    const linePhase = Math.min((t - 0.12) / 0.48, 1); // 0→1 over t 0.12–0.60
-    const lineW     = easeOut(linePhase) * (W * 0.5);  // half-width (symmetric)
-    const lineOpacity = t < 0.70
-      ? Math.min((t - 0.12) / 0.08, 1)                 // fade in fast
-      : 1 - easeOut((t - 0.70) / 0.15);                // fade out
-
-    if(lineOpacity > 0.001 && lineW > 0) {
-      // Core bright white line
-      const lineGrad = ctx.createLinearGradient(cx - lineW, cy, cx + lineW, cy);
-      lineGrad.addColorStop(0,    `rgba(255,255,255,0)`);
-      lineGrad.addColorStop(0.35, `rgba(255,255,255,${0.15 * lineOpacity})`);
-      lineGrad.addColorStop(0.48, `rgba(255,255,255,${0.85 * lineOpacity})`);
-      lineGrad.addColorStop(0.5,  `rgba(255,255,255,${lineOpacity})`);
-      lineGrad.addColorStop(0.52, `rgba(255,255,255,${0.85 * lineOpacity})`);
-      lineGrad.addColorStop(0.65, `rgba(255,255,255,${0.15 * lineOpacity})`);
-      lineGrad.addColorStop(1,    `rgba(255,255,255,0)`);
-
-      ctx.beginPath();
-      ctx.strokeStyle = lineGrad;
-      ctx.lineWidth   = 2.5;
-      ctx.moveTo(cx - lineW, cy);
-      ctx.lineTo(cx + lineW, cy);
-      ctx.stroke();
-
-      // Soft glow halo around the line
-      const haloGrad = ctx.createLinearGradient(cx - lineW, cy, cx + lineW, cy);
-      haloGrad.addColorStop(0,    `rgba(200,220,255,0)`);
-      haloGrad.addColorStop(0.4,  `rgba(200,220,255,${0.06 * lineOpacity})`);
-      haloGrad.addColorStop(0.5,  `rgba(200,220,255,${0.18 * lineOpacity})`);
-      haloGrad.addColorStop(0.6,  `rgba(200,220,255,${0.06 * lineOpacity})`);
-      haloGrad.addColorStop(1,    `rgba(200,220,255,0)`);
-
-      ctx.beginPath();
-      const haloH = 22;
-      const grad2 = ctx.createLinearGradient(cx, cy - haloH, cx, cy + haloH);
-      grad2.addColorStop(0,   `rgba(200,220,255,0)`);
-      grad2.addColorStop(0.5, `rgba(200,220,255,${0.22 * lineOpacity})`);
-      grad2.addColorStop(1,   `rgba(200,220,255,0)`);
-      ctx.fillStyle = grad2;
-      ctx.fillRect(cx - lineW, cy - haloH, lineW * 2, haloH * 2);
-    }
-
-    // ── Central lens flare bloom ─────────────────────
-    const flarePhase = Math.min((t - 0.18) / 0.42, 1);
-    const flareOpacity = t < 0.62
-      ? easeOut(Math.min((t - 0.18) / 0.12, 1))
-      : 1 - easeInOut((t - 0.62) / 0.18);
-
-    if(flareOpacity > 0.001) {
-      const maxR = Math.min(W, H) * 0.38;
-      const r    = easeOut(flarePhase) * maxR;
-
-      // Outer soft bloom
-      const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      bloom.addColorStop(0,    `rgba(255,255,255,${0.95 * flareOpacity})`);
-      bloom.addColorStop(0.04, `rgba(255,255,255,${0.85 * flareOpacity})`);
-      bloom.addColorStop(0.12, `rgba(220,235,255,${0.45 * flareOpacity})`);
-      bloom.addColorStop(0.30, `rgba(180,210,255,${0.15 * flareOpacity})`);
-      bloom.addColorStop(0.60, `rgba(140,180,255,${0.04 * flareOpacity})`);
-      bloom.addColorStop(1,    `rgba(100,150,255,0)`);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = bloom;
-      ctx.fill();
-
-      // Sharp 4-pointed star rays (horizontal + vertical)
-      const rayLen  = easeOut(flarePhase) * W * 0.52;
-      const rayLen2 = easeOut(flarePhase) * H * 0.22;
-
-      function drawRay(angle, len, thick, op) {
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angle);
-        const rg = ctx.createLinearGradient(0, 0, len, 0);
-        rg.addColorStop(0,    `rgba(255,255,255,${op * flareOpacity})`);
-        rg.addColorStop(0.15, `rgba(255,255,255,${0.5 * op * flareOpacity})`);
-        rg.addColorStop(0.5,  `rgba(220,235,255,${0.12 * op * flareOpacity})`);
-        rg.addColorStop(1,    `rgba(200,220,255,0)`);
-        // Diamond shape using a thin triangle
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(len * 0.04,  thick * 0.5);
-        ctx.lineTo(len, 0);
-        ctx.lineTo(len * 0.04, -thick * 0.5);
-        ctx.closePath();
-        ctx.fillStyle = rg;
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Horizontal rays (left + right)
-      drawRay(0,       rayLen,  14, 1.0);
-      drawRay(Math.PI, rayLen,  14, 1.0);
-      // Vertical rays (shorter, thinner)
-      drawRay(Math.PI * 0.5,  rayLen2, 5, 0.65);
-      drawRay(Math.PI * 1.5,  rayLen2, 5, 0.65);
-      // Diagonal rays (very subtle)
-      const diagLen = rayLen * 0.28;
-      drawRay(Math.PI * 0.25, diagLen, 3, 0.25);
-      drawRay(Math.PI * 0.75, diagLen, 3, 0.25);
-      drawRay(Math.PI * 1.25, diagLen, 3, 0.25);
-      drawRay(Math.PI * 1.75, diagLen, 3, 0.25);
-    }
-
-    // ── White flash as screen "opens" ────────────────
-    if(t > 0.68 && t < 0.88) {
-      const flashT = (t - 0.68) / 0.20;
-      const flashA = Math.sin(flashT * Math.PI) * 0.55;
-      ctx.fillStyle = `rgba(255,255,255,${flashA})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    if(raw < 1) {
-      requestAnimationFrame(draw);
-    } else {
-      // Completely done — remove canvas so it never interferes again
       canvas.style.display = 'none';
     }
   }
