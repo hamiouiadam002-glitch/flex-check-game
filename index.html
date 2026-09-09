@@ -1379,6 +1379,17 @@ body.light .btn{border-color:var(--border2);}
         style="width:100%;accent-color:var(--c1l);cursor:pointer;height:6px;border-radius:3px">
     </div>
 
+    <!-- Slider: Music volume -->
+    <div style="margin-bottom:22px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:13px;font-weight:600;color:var(--text2)"><i class="ti ti-music" style="margin-right:5px"></i>Music volume</span>
+        <span id="gsMusicVolLabel" style="font-size:12px;color:var(--c1l);font-weight:700">50%</span>
+      </div>
+      <input type="range" id="gsMusicVol" min="0" max="100" value="50" step="5"
+        oninput="applyMusicVolume(this.value)"
+        style="width:100%;accent-color:var(--c1l);cursor:pointer;height:6px;border-radius:3px">
+    </div>
+
     <!-- IN-GAME ONLY section (Reset / Skip) — hidden when not in an active round -->
     <div id="gsInGameSection" style="display:none">
       <div style="height:1px;background:var(--border);margin-bottom:18px"></div>
@@ -13057,10 +13068,13 @@ function openGameSettings(){
   const sizeEl = document.getElementById('gsUiSize');
   const curVol  = Math.round(window._masterVolume * 100);
   const curSize = window._uiSize;
+  const curMusic = Math.round((window._musicVolume ?? 0.5) * 100);
   if(volEl)  { volEl.value  = curVol;  document.getElementById('gsVolLabel').textContent  = curVol+'%'; }
   if(sizeEl) { sizeEl.value = curSize; document.getElementById('gsUiSizeLabel').textContent = curSize+'%'; }
+  const musicEl = document.getElementById('gsMusicVol');
+  if(musicEl) { musicEl.value = curMusic; document.getElementById('gsMusicVolLabel').textContent = curMusic+'%'; }
   // Take snapshot so we can restore on cancel
-  _gsSnapshot = { vol: window._masterVolume, size: window._uiSize };
+  _gsSnapshot = { vol: window._masterVolume, size: window._uiSize, music: window._musicVolume ?? 0.5 };
   modal.style.display = 'flex';
 }
 
@@ -13069,7 +13083,8 @@ function gsRequestClose(){
   const snap = _gsSnapshot;
   const changed = snap && (
     Math.round(window._masterVolume*100) !== Math.round(snap.vol*100) ||
-    window._uiSize !== snap.size
+    window._uiSize !== snap.size ||
+    Math.round((window._musicVolume??0.5)*100) !== Math.round((snap.music??0.5)*100)
   );
   if(changed){
     // Show the apply/cancel dialog
@@ -13087,6 +13102,7 @@ function gsConfirmCancel(){
   if(_gsSnapshot){
     applyVolume(Math.round(_gsSnapshot.vol * 100));
     applyUiSize(_gsSnapshot.size);
+    applyMusicVolume(Math.round((_gsSnapshot.music ?? 0.5) * 100));
   }
   // Reopen settings with restored values
   openGameSettings();
@@ -13112,6 +13128,18 @@ function applyVolume(val){
   if(_masterGain) _masterGain.gain.value = window._masterVolume;
   document.getElementById('gsVolLabel').textContent = val+'%';
   try{ localStorage.setItem('fc_volume', window._masterVolume); }catch(e){}
+}
+
+function applyMusicVolume(val){
+  window._musicVolume = val/100;
+  const el = document.getElementById('gsMusicVol');
+  const label = document.getElementById('gsMusicVolLabel');
+  if(el) el.value = val;
+  if(label) label.textContent = val+'%';
+  // Apply to the background audio element
+  const audio = document.getElementById('bgMusic');
+  if(audio) audio.volume = window._musicVolume;
+  try{ localStorage.setItem('fc_music_volume', window._musicVolume); }catch(e){}
 }
 
 function applyUiSize(val, save=true){
@@ -14172,6 +14200,52 @@ function initBgCanvas(){
   }
 
   requestAnimationFrame(draw);
+})();
+</script>
+<audio id="bgMusic" loop preload="auto" style="display:none">
+  <source src="FLEX_CHECK.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+(function(){
+  var audio = document.getElementById('bgMusic');
+  // Load saved music volume (default 50%)
+  window._musicVolume = parseFloat(localStorage.getItem('fc_music_volume') ?? '0.5');
+  audio.volume = window._musicVolume;
+
+  // Sync slider label on page load
+  function syncMusicSlider(){
+    var el = document.getElementById('gsMusicVol');
+    var label = document.getElementById('gsMusicVolLabel');
+    if(el) el.value = Math.round(window._musicVolume * 100);
+    if(label) label.textContent = Math.round(window._musicVolume * 100) + '%';
+  }
+
+  // Try autoplay immediately (works on desktop)
+  function tryPlay(){
+    var p = audio.play();
+    if(p && p.catch) p.catch(function(){});
+  }
+  tryPlay();
+
+  // On mobile, browsers block autoplay until first user interaction
+  // — start music on first touch or click anywhere
+  function onFirstInteraction(){
+    if(audio.paused) tryPlay();
+    document.removeEventListener('touchstart', onFirstInteraction);
+    document.removeEventListener('click', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+  }
+  document.addEventListener('touchstart', onFirstInteraction, {passive:true});
+  document.addEventListener('click', onFirstInteraction);
+  document.addEventListener('keydown', onFirstInteraction);
+
+  // Sync slider once DOM is ready
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', syncMusicSlider);
+  } else {
+    syncMusicSlider();
+  }
 })();
 </script>
 </body>
