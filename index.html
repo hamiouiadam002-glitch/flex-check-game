@@ -1308,6 +1308,18 @@ body.light .btn{border-color:var(--border2);}
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <!-- Settings gear — ALWAYS visible top-right -->
+    <button id="musicToggleBtn" onclick="toggleBgMusic()" style="
+      display:flex;
+      width:36px;height:36px;border-radius:10px;
+      background:var(--dark3);border:1px solid var(--border2);
+      color:var(--text2);cursor:pointer;
+      align-items:center;justify-content:center;font-size:17px;
+      transition:.15s;flex-shrink:0;
+    " title="Toggle music"
+    onmouseover="this.style.background='var(--dark4)';this.style.color='var(--text)'"
+    onmouseout="this.style.background='var(--dark3)';this.style.color=window._musicMuted?'var(--cr)':'var(--text2)'">
+      <i id="musicToggleIcon" class="ti ti-music"></i>
+    </button>
     <button id="gameSettingsGear" onclick="openGameSettings()" style="
       display:flex;
       width:36px;height:36px;border-radius:10px;
@@ -14207,46 +14219,89 @@ function initBgCanvas(){
 </audio>
 
 <script>
-(function(){
-  var audio = document.getElementById('bgMusic');
-  // Load saved music volume (default 50%)
-  window._musicVolume = parseFloat(localStorage.getItem('fc_music_volume') ?? '0.5');
-  audio.volume = window._musicVolume;
+// ── Background Music ──────────────────────────────────────────
+window._musicMuted = (localStorage.getItem('fc_music_muted') === 'true');
+window._musicVolume = parseFloat(localStorage.getItem('fc_music_volume') ?? '0.5');
 
-  // Sync slider label on page load
-  function syncMusicSlider(){
-    var el = document.getElementById('gsMusicVol');
-    var label = document.getElementById('gsMusicVolLabel');
-    if(el) el.value = Math.round(window._musicVolume * 100);
-    if(label) label.textContent = Math.round(window._musicVolume * 100) + '%';
+function _syncMusicBtn(){
+  var btn  = document.getElementById('musicToggleBtn');
+  var icon = document.getElementById('musicToggleIcon');
+  if(!btn || !icon) return;
+  if(window._musicMuted){
+    icon.className = 'ti ti-music-off';
+    btn.style.color = 'var(--cr)';
+    btn.title = 'Music off — click to turn on';
+  } else {
+    icon.className = 'ti ti-music';
+    btn.style.color = 'var(--text2)';
+    btn.title = 'Music on — click to mute';
   }
+}
 
-  // Try autoplay immediately (works on desktop)
-  function tryPlay(){
+function _syncMusicSlider(){
+  var el    = document.getElementById('gsMusicVol');
+  var label = document.getElementById('gsMusicVolLabel');
+  if(el)    el.value = Math.round(window._musicVolume * 100);
+  if(label) label.textContent = Math.round(window._musicVolume * 100) + '%';
+}
+
+function _startMusic(){
+  var audio = document.getElementById('bgMusic');
+  if(!audio || window._musicMuted) return;
+  audio.volume = window._musicVolume;
+  var p = audio.play();
+  if(p && p.catch) p.catch(function(){});
+}
+
+// Called by the navbar music button
+window.toggleBgMusic = function(){
+  var audio = document.getElementById('bgMusic');
+  if(!audio) return;
+  window._musicMuted = !window._musicMuted;
+  try{ localStorage.setItem('fc_music_muted', window._musicMuted); }catch(e){}
+  if(window._musicMuted){
+    audio.pause();
+  } else {
+    audio.volume = window._musicVolume;
     var p = audio.play();
     if(p && p.catch) p.catch(function(){});
   }
-  tryPlay();
+  _syncMusicBtn();
+};
 
-  // On mobile, browsers block autoplay until first user interaction
-  // — start music on first touch or click anywhere
-  function onFirstInteraction(){
-    if(audio.paused) tryPlay();
-    document.removeEventListener('touchstart', onFirstInteraction);
-    document.removeEventListener('click', onFirstInteraction);
-    document.removeEventListener('keydown', onFirstInteraction);
-  }
-  document.addEventListener('touchstart', onFirstInteraction, {passive:true});
-  document.addEventListener('click', onFirstInteraction);
-  document.addEventListener('keydown', onFirstInteraction);
+// Called by the settings slider
+window.applyMusicVolume = function(val){
+  window._musicVolume = val / 100;
+  var audio = document.getElementById('bgMusic');
+  if(audio && !window._musicMuted) audio.volume = window._musicVolume;
+  var el    = document.getElementById('gsMusicVol');
+  var label = document.getElementById('gsMusicVolLabel');
+  if(el)    el.value = val;
+  if(label) label.textContent = val + '%';
+  try{ localStorage.setItem('fc_music_volume', window._musicVolume); }catch(e){}
+};
 
-  // Sync slider once DOM is ready
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', syncMusicSlider);
-  } else {
-    syncMusicSlider();
+// Start music on first real user interaction (bypasses autoplay policy)
+(function(){
+  var _started = false;
+  function onInteraction(){
+    if(_started) return;
+    _started = true;
+    _startMusic();
+    document.removeEventListener('touchstart', onInteraction, true);
+    document.removeEventListener('mousedown',  onInteraction, true);
+    document.removeEventListener('keydown',    onInteraction, true);
   }
+  document.addEventListener('touchstart', onInteraction, {capture:true, passive:true});
+  document.addEventListener('mousedown',  onInteraction, {capture:true});
+  document.addEventListener('keydown',    onInteraction, {capture:true});
 })();
+
+// Sync UI once DOM ready
+document.addEventListener('DOMContentLoaded', function(){
+  _syncMusicBtn();
+  _syncMusicSlider();
+});
 </script>
 </body>
 </html>
