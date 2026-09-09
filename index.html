@@ -12932,7 +12932,18 @@ function _hideReconnectBanner() {
 // ── BOOT: try session restore on DOMContentLoaded ──
 window.addEventListener('DOMContentLoaded', function() {
   // Activate TV bezel immediately on first load (main menu)
+  // (updateTVBezel internally skips the bezel on phone-sized screens)
   if (typeof updateTVBezel === 'function') updateTVBezel('home');
+
+  // Re-evaluate bezel if the window is resized or orientation changes
+  // (e.g. rotating phone to landscape shouldn't suddenly show the bezel)
+  window.addEventListener('resize', function() {
+    if (typeof updateTVBezel === 'function') {
+      // Pass the currently active screen id, fall back to 'home'
+      const activeScreen = document.querySelector('[id^="s-"]?.active') || { id: 's-home' };
+      updateTVBezel(activeScreen.id ? activeScreen.id.replace('s-','') : 'home');
+    }
+  });
 
   // Give the obInit handler a tick to run first (it restores the name)
   setTimeout(() => {
@@ -13780,9 +13791,21 @@ function initBgCanvas(){
     }
   }
 
+  // Detect mobile/phone devices — if on a phone, never show the TV bezel
+  function isMobilePhone() {
+    const ua = navigator.userAgent || '';
+    // Check touch + small screen (phones, not tablets)
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isSmallScreen = window.screen.width <= 768 || window.innerWidth <= 768;
+    // Also check user agent for common mobile identifiers
+    const isMobileUA = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua)
+                    && !/iPad|Tablet/i.test(ua);
+    return (isTouchDevice && isSmallScreen) || isMobileUA;
+  }
+
   window.updateTVBezel = function(screenId) {
-    // TV bezel is always shown on every screen (solo, multiplayer, main menu, everywhere)
-    const shouldShow = true;
+    // Never show TV bezel on phones — it shrinks the viewport and hurts the experience
+    const shouldShow = !isMobilePhone();
 
     const bezel = document.getElementById('tvBezel');
     if (!bezel) return;
