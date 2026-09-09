@@ -11286,6 +11286,13 @@ function tutOnTaskComplete(taskIdx) {
   _tutScores[taskIdx - 1] = { task, pts, accuracy, detail };
 
   _tutTask = taskIdx;
+  // Hide Skip Task and Pause immediately when the last task ends — don't wait for drain bar
+  if(taskIdx >= 5) {
+    tutHideSkipTask();
+    const _skipBtnEarly = document.getElementById('tutSkipBtn');
+    if(_skipBtnEarly) _skipBtnEarly.style.display = 'none';
+    tutHidePauseBtn();
+  }
   tutShowTaskComplete(task, () => {
     if(taskIdx >= 5) {
       // All done!
@@ -11351,6 +11358,13 @@ function tutShowTaskComplete(task, onDone) {
       </div>
     </div>`;
 
+  // If this is the last task, ensure buttons are hidden immediately (belt-and-suspenders)
+  if(allDone) {
+    tutHideSkipTask();
+    const _sb = document.getElementById('tutSkipBtn');
+    if(_sb) _sb.style.display = 'none';
+    tutHidePauseBtn();
+  }
   // Animate the bar draining — instant transition for allDone (goes straight to summary)
   const duration = allDone ? 600 : 7000;
   const start = performance.now();
