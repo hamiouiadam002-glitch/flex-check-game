@@ -7046,8 +7046,26 @@ function tapStartCountdown(cb){
 
 function renderTapGrid(){
   const g=document.getElementById('tapGrid');
-  g.innerHTML=Array.from({length:9},(_,i)=>`<div class="tap-cell" id="tc${i}"
-    ontouchstart="tapCell(${i},event)" onclick="tapCell(${i},event)"></div>`).join('');
+  g.innerHTML=Array.from({length:9},(_,i)=>`<div class="tap-cell" id="tc${i}"></div>`).join('');
+  // Attach listeners after render — touchstart for instant mobile response, click for desktop
+  for(let i=0;i<9;i++){
+    const cell=document.getElementById('tc'+i);
+    if(!cell)continue;
+    (function(idx){
+      var _fired=false;
+      cell.addEventListener('touchstart',function(e){
+        e.preventDefault(); // block the follow-up click & stop scroll interference
+        if(_fired)return;
+        _fired=true;
+        setTimeout(function(){_fired=false;},400);
+        tapCell(idx);
+      },{passive:false});
+      cell.addEventListener('click',function(e){
+        if(_fired)return; // already handled by touchstart
+        tapCell(idx);
+      });
+    })(i);
+  }
 }
 
 function startTapRound(){
@@ -7081,13 +7099,7 @@ function startTapRound(){
   },50);
 }
 
-function tapCell(i,e){
-  // Prevent the 300ms-delayed click from firing after a touchstart already handled it
-  if(e&&e.type==='touchstart'){e.preventDefault();e.stopPropagation();}
-  if(e&&e.type==='click'&&e.sourceCapabilities&&!e.sourceCapabilities.firesTouchEvents===false){return;}
-  // Use a flag to dedupe: touchstart sets it, click checks it
-  if(e&&e.type==='touchstart'){if(c&&c._touched)return;if(document.getElementById('tc'+i))document.getElementById('tc'+i)._touched=true;setTimeout(()=>{const el=document.getElementById('tc'+i);if(el)el._touched=false;},500);}
-  if(e&&e.type==='click'){const el=document.getElementById('tc'+i);if(el&&el._touched)return;}
+function tapCell(i){
   if(_tapDone)return;
   const c=document.getElementById('tc'+i);
   if(!c)return;
@@ -7266,8 +7278,27 @@ function renderOrderBoard(){
   board.innerHTML=_opNumbers.map((v,i)=>{
     const p=positions[i];
     const fontSize=size>=60?18:size>=50?16:14;
-    return `<div class="op-num" id="opn${i}" ontouchstart="tapOrderNumber(${i},event)" onclick="tapOrderNumber(${i},event)" style="left:${p.x}px;top:${p.y}px;width:${size}px;height:${size}px;font-size:${fontSize}px">${fmtOrderNum(v)}</div>`;
+    return `<div class="op-num" id="opn${i}" style="left:${p.x}px;top:${p.y}px;width:${size}px;height:${size}px;font-size:${fontSize}px">${fmtOrderNum(v)}</div>`;
   }).join('');
+  // Attach instant touch listeners after render
+  for(let i=0;i<_opNumbers.length;i++){
+    const el=document.getElementById('opn'+i);
+    if(!el)continue;
+    (function(idx){
+      var _fired=false;
+      el.addEventListener('touchstart',function(e){
+        e.preventDefault();
+        if(_fired)return;
+        _fired=true;
+        setTimeout(function(){_fired=false;},400);
+        tapOrderNumber(idx);
+      },{passive:false});
+      el.addEventListener('click',function(){
+        if(_fired)return;
+        tapOrderNumber(idx);
+      });
+    })(i);
+  }
 }
 
 function updateOrderNextHint(){
@@ -7335,9 +7366,7 @@ function timeUpOrderRound(){
   finishOrderRound(true);
 }
 
-function tapOrderNumber(i,e){
-  if(e&&e.type==='touchstart'){e.preventDefault();e.stopPropagation();const el=document.getElementById('opn'+i);if(el){if(el._touched)return;el._touched=true;setTimeout(()=>{el._touched=false;},500);}}
-  if(e&&e.type==='click'){const el=document.getElementById('opn'+i);if(el&&el._touched)return;}
+function tapOrderNumber(i){
   if(_opDone)return;
   if(!_opStartTime)return; // countdown not finished
   const cell=document.getElementById('opn'+i);
