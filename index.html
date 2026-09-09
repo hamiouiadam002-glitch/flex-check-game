@@ -2573,6 +2573,8 @@ function updateNavBtns(){
   
 }
 function _showScreen(id){
+  // Always unlock scroll when navigating away from tap grid
+  if(id !== 'tapgrid') { document.body.classList.remove('tapgrid-active'); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById('s-'+id);
   if(el)el.classList.add('active');
@@ -3630,6 +3632,8 @@ function showSoloResults(){
     :`<button class="btn btn-solo" onclick="nextSoloRound()">${t('next_round')}</button>`;
 }
 function showSoloFinal(){
+  // Unlock scroll in case we're coming from Tap Grid
+  unlockScroll();
   show('solo-final');
   const modeObj=MODES.find(x=>x.id===_soloMode)||{name:'Solo',icon:'🎮'};
 
@@ -3732,7 +3736,7 @@ function showSoloFinal(){
     localStorage.setItem('cp_records',JSON.stringify(records.slice(0,50)));
   }catch(e){}
 }
-function restartSolo(){SOLO.currentRound=0;SOLO.wins=0;SOLO.losses=0;SOLO.totalScore=0;document.getElementById('navBack')?.style&&(document.getElementById('navBack').style.display='none');show('solo');}
+function restartSolo(){unlockScroll();SOLO.currentRound=0;SOLO.wins=0;SOLO.losses=0;SOLO.totalScore=0;document.getElementById('navBack')?.style&&(document.getElementById('navBack').style.display='none');show('solo');}
 
 // ── MULTIPLAYER STATE ──
 let ST={
@@ -9691,6 +9695,8 @@ function promptMidLeave(){
 
 // Solo mode: Return to the solo lobby (mode selection screen) mid-game
 function soloReturnToLobby(){
+  // Always unlock scroll (Tap Grid locks it; other modes are no-ops)
+  unlockScroll();
   // Stop all timers/sounds
   stopBeeping();stopChainBeeping();
   clearFlashTimers();clearTapTimers();clearOrderTimers();
